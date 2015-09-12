@@ -35,7 +35,7 @@ class Session {
         }
     }
 
-    init(initiator: String, responder: String, role: Role, sid: String = NSUUID().UUIDString) {
+    init(initiator: String, responder: String, role: Role, sid: String) {
         self.initiator = initiator
         self.responder = responder
         self.role = role
