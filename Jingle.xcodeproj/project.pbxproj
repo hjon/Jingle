@@ -11,7 +11,20 @@
 		989EBF881BA37A510016B5A4 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 989EBF871BA37A510016B5A4 /* ViewController.swift */; };
 		989EBF8A1BA37A510016B5A4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 989EBF891BA37A510016B5A4 /* Assets.xcassets */; };
 		989EBF8D1BA37A510016B5A4 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 989EBF8B1BA37A510016B5A4 /* Main.storyboard */; };
+		989EBF951BA37AFF0016B5A4 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = 989EBF941BA37AFF0016B5A4 /* Session.swift */; };
+		989EBF991BA383440016B5A4 /* Content.swift in Sources */ = {isa = PBXBuildFile; fileRef = 989EBF981BA383440016B5A4 /* Content.swift */; };
+		989EBFA11BA4C1DE0016B5A4 /* JingleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 989EBFA01BA4C1DE0016B5A4 /* JingleTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		989EBFA31BA4C1DE0016B5A4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 989EBF7A1BA37A510016B5A4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 989EBF811BA37A510016B5A4;
+			remoteInfo = Jingle;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		989EBF821BA37A510016B5A4 /* Jingle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Jingle.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -20,10 +33,22 @@
 		989EBF891BA37A510016B5A4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		989EBF8C1BA37A510016B5A4 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		989EBF8E1BA37A510016B5A4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		989EBF941BA37AFF0016B5A4 /* Session.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
+		989EBF981BA383440016B5A4 /* Content.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Content.swift; sourceTree = "<group>"; };
+		989EBF9E1BA4C1DE0016B5A4 /* JingleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JingleTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		989EBFA01BA4C1DE0016B5A4 /* JingleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JingleTests.swift; sourceTree = "<group>"; };
+		989EBFA21BA4C1DE0016B5A4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		989EBF7F1BA37A510016B5A4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		989EBF9B1BA4C1DE0016B5A4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -37,6 +62,7 @@
 			isa = PBXGroup;
 			children = (
 				989EBF841BA37A510016B5A4 /* Jingle */,
+				989EBF9F1BA4C1DE0016B5A4 /* JingleTests */,
 				989EBF831BA37A510016B5A4 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -45,6 +71,7 @@
 			isa = PBXGroup;
 			children = (
 				989EBF821BA37A510016B5A4 /* Jingle.app */,
+				989EBF9E1BA4C1DE0016B5A4 /* JingleTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -57,8 +84,19 @@
 				989EBF891BA37A510016B5A4 /* Assets.xcassets */,
 				989EBF8B1BA37A510016B5A4 /* Main.storyboard */,
 				989EBF8E1BA37A510016B5A4 /* Info.plist */,
+				989EBF941BA37AFF0016B5A4 /* Session.swift */,
+				989EBF981BA383440016B5A4 /* Content.swift */,
 			);
 			path = Jingle;
+			sourceTree = "<group>";
+		};
+		989EBF9F1BA4C1DE0016B5A4 /* JingleTests */ = {
+			isa = PBXGroup;
+			children = (
+				989EBFA01BA4C1DE0016B5A4 /* JingleTests.swift */,
+				989EBFA21BA4C1DE0016B5A4 /* Info.plist */,
+			);
+			path = JingleTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -81,6 +119,24 @@
 			productReference = 989EBF821BA37A510016B5A4 /* Jingle.app */;
 			productType = "com.apple.product-type.application";
 		};
+		989EBF9D1BA4C1DE0016B5A4 /* JingleTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 989EBFA51BA4C1DE0016B5A4 /* Build configuration list for PBXNativeTarget "JingleTests" */;
+			buildPhases = (
+				989EBF9A1BA4C1DE0016B5A4 /* Sources */,
+				989EBF9B1BA4C1DE0016B5A4 /* Frameworks */,
+				989EBF9C1BA4C1DE0016B5A4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				989EBFA41BA4C1DE0016B5A4 /* PBXTargetDependency */,
+			);
+			name = JingleTests;
+			productName = JingleTests;
+			productReference = 989EBF9E1BA4C1DE0016B5A4 /* JingleTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -92,6 +148,10 @@
 				TargetAttributes = {
 					989EBF811BA37A510016B5A4 = {
 						CreatedOnToolsVersion = 7.1;
+					};
+					989EBF9D1BA4C1DE0016B5A4 = {
+						CreatedOnToolsVersion = 7.1;
+						TestTargetID = 989EBF811BA37A510016B5A4;
 					};
 				};
 			};
@@ -109,6 +169,7 @@
 			projectRoot = "";
 			targets = (
 				989EBF811BA37A510016B5A4 /* Jingle */,
+				989EBF9D1BA4C1DE0016B5A4 /* JingleTests */,
 			);
 		};
 /* End PBXProject section */
@@ -123,6 +184,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		989EBF9C1BA4C1DE0016B5A4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -132,10 +200,28 @@
 			files = (
 				989EBF881BA37A510016B5A4 /* ViewController.swift in Sources */,
 				989EBF861BA37A510016B5A4 /* AppDelegate.swift in Sources */,
+				989EBF951BA37AFF0016B5A4 /* Session.swift in Sources */,
+				989EBF991BA383440016B5A4 /* Content.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		989EBF9A1BA4C1DE0016B5A4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				989EBFA11BA4C1DE0016B5A4 /* JingleTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		989EBFA41BA4C1DE0016B5A4 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 989EBF811BA37A510016B5A4 /* Jingle */;
+			targetProxy = 989EBFA31BA4C1DE0016B5A4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		989EBF8B1BA37A510016B5A4 /* Main.storyboard */ = {
@@ -253,6 +339,32 @@
 			};
 			name = Release;
 		};
+		989EBFA61BA4C1DE0016B5A4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = JingleTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = fish.hjelle.JingleTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Jingle.app/Contents/MacOS/Jingle";
+			};
+			name = Debug;
+		};
+		989EBFA71BA4C1DE0016B5A4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = JingleTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = fish.hjelle.JingleTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Jingle.app/Contents/MacOS/Jingle";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -270,6 +382,14 @@
 			buildConfigurations = (
 				989EBF921BA37A510016B5A4 /* Debug */,
 				989EBF931BA37A510016B5A4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+		989EBFA51BA4C1DE0016B5A4 /* Build configuration list for PBXNativeTarget "JingleTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				989EBFA61BA4C1DE0016B5A4 /* Debug */,
+				989EBFA71BA4C1DE0016B5A4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 		};
