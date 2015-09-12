@@ -42,7 +42,7 @@ class Content {
         self.senders = senders
         self.disposition = disposition
 
-        if (self.creator == self.session.role) {
+        if self.creator == self.session.role {
             state = .Starting
         } else {
             state = .Pending
