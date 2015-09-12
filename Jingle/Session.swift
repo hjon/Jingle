@@ -47,4 +47,8 @@ class Session {
             state = .Pending
         }
     }
+
+    func equivalent() -> Bool {
+        return true
+    }
 }
