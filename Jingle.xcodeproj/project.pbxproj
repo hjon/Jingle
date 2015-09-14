@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		989240151BA4DF6300FDAB57 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 989240141BA4DF6300FDAB57 /* SessionManager.swift */; };
 		989240171BA4ED1200FDAB57 /* StringOctetCollation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 989240161BA4ED1200FDAB57 /* StringOctetCollation.swift */; };
 		989EBF861BA37A510016B5A4 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 989EBF851BA37A510016B5A4 /* AppDelegate.swift */; };
 		989EBF881BA37A510016B5A4 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 989EBF871BA37A510016B5A4 /* ViewController.swift */; };
@@ -29,6 +30,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		989240141BA4DF6300FDAB57 /* SessionManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
 		989240161BA4ED1200FDAB57 /* StringOctetCollation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StringOctetCollation.swift; sourceTree = "<group>"; };
 		989EBF821BA37A510016B5A4 /* Jingle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Jingle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		989EBF851BA37A510016B5A4 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -91,6 +93,7 @@
 				989EBF941BA37AFF0016B5A4 /* Session.swift */,
 				989EBF981BA383440016B5A4 /* Content.swift */,
 				989EBFA81BA4DAB40016B5A4 /* DataDefinitions.swift */,
+				989240141BA4DF6300FDAB57 /* SessionManager.swift */,
 				989240161BA4ED1200FDAB57 /* StringOctetCollation.swift */,
 			);
 			path = Jingle;
@@ -207,6 +210,7 @@
 				989240171BA4ED1200FDAB57 /* StringOctetCollation.swift in Sources */,
 				989EBF881BA37A510016B5A4 /* ViewController.swift in Sources */,
 				989EBF861BA37A510016B5A4 /* AppDelegate.swift in Sources */,
+				989240151BA4DF6300FDAB57 /* SessionManager.swift in Sources */,
 				989EBF951BA37AFF0016B5A4 /* Session.swift in Sources */,
 				989EBFA91BA4DAB40016B5A4 /* DataDefinitions.swift in Sources */,
 				989EBF991BA383440016B5A4 /* Content.swift in Sources */,
@@ -392,6 +396,7 @@
 				989EBF931BA37A510016B5A4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		989EBFA51BA4C1DE0016B5A4 /* Build configuration list for PBXNativeTarget "JingleTests" */ = {
 			isa = XCConfigurationList;
@@ -400,6 +405,7 @@
 				989EBFA71BA4C1DE0016B5A4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

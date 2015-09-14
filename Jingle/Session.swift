@@ -48,7 +48,10 @@ class Session {
         }
     }
 
-    func equivalent() -> Bool {
+    func equivalent(action: ActionData) -> Bool {
         return true
+    }
+
+    func processAction(action: ActionData) {
     }
 }
