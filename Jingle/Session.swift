@@ -23,7 +23,7 @@ class Session {
     let responder: String
     let role: Role
     let sid: String
-    var state: SessionState
+    var state = SessionState.Starting
 
     var peer: String {
         if role == .Initiator {
@@ -38,7 +38,6 @@ class Session {
         self.responder = responder
         self.role = role
         self.sid = sid
-        state = .Starting
     }
 
     func equivalent(action: ActionData) -> Bool {

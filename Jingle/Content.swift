@@ -33,7 +33,7 @@ class Content {
     let name: String
     let disposition: Disposition
     var senders: Senders
-    var state: ContentState
+    var state = ContentState.Starting
 
     init(session: Session, creator: Role, name: String, senders: Senders = .Both, disposition: Disposition = .Session) {
         self.session = session
@@ -41,6 +41,5 @@ class Content {
         self.name = name
         self.senders = senders
         self.disposition = disposition
-        state = .Starting
     }
 }
