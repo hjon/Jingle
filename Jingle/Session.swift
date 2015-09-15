@@ -38,12 +38,7 @@ class Session {
         self.responder = responder
         self.role = role
         self.sid = sid
-
-        if self.role == .Initiator {
-            state = .Starting
-        } else {
-            state = .Pending
-        }
+        state = .Starting
     }
 
     func equivalent(action: ActionData) -> Bool {
