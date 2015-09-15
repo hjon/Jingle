@@ -6,8 +6,6 @@
 //  Copyright © 2015 Jon Hjelle. All rights reserved.
 //
 
-import Foundation
-
 enum Role: String {
     case Initiator = "initiator"
     case Responder = "responder"
