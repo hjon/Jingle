@@ -24,6 +24,14 @@ enum ActionName: String {
     case TransportReplace = "transport-replace"
 }
 
+enum JingleAck {
+    case Ack
+    case BadRequest
+    case TieBreak
+    case UnknownSession
+    case OutOfOrder
+}
+
 struct ContentData {
     let creator: Role
     let name: String
@@ -40,4 +48,5 @@ struct ActionData {
     let action: ActionName
     let contents: Array<ContentData>?
     let info: Any?
+    let signalBlock: ((JingleAck) -> Void)
 }
