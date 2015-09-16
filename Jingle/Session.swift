@@ -49,25 +49,29 @@ class Session {
         self.sid = sid
     }
 
-    func equivalent(action: ActionData) -> Bool {
+    func equivalent(request: JingleRequest) -> Bool {
         return true
     }
 
-    private func internalProcessRemoteRequest(request: ActionData) {
+    private func sendRequest(request: JingleRequest) {
+        // Do something and call request.completionBlock
+    }
+
+    private func internalProcessRemoteRequest(request: JingleRequest) {
         switch request.action {
         case .SessionInitiate:
             if role == .Initiator || state != .Starting {
-                return request.signalBlock(.OutOfOrder)
+                return request.completionBlock(.OutOfOrder)
             }
         case .SessionAccept:
             if role != .Initiator || state != .Pending {
-                return request.signalBlock(.OutOfOrder)
+                return request.completionBlock(.OutOfOrder)
             }
         default:
             break
         }
 
-        request.signalBlock(.Ack)
+        request.completionBlock(.Ack)
 
         switch request.action {
         case .SessionInitiate:
@@ -81,12 +85,70 @@ class Session {
         }
     }
 
-    func processAction(action: ActionData) {
+    func processRequest(request: JingleRequest) {
         let operation = NSBlockOperation() {
-            self.internalProcessRemoteRequest(action)
+            self.internalProcessRemoteRequest(request)
         }
         // TODO: Enum for .Remote and .Local and remap .Normal and .High?
         operation.queuePriority = .Normal
         queue.addOperation(operation)
+    }
+
+    private func internalProcessLocalRequest(request: JingleRequest) {
+        switch request.action {
+        case .SessionInitiate:
+            if role == .Responder || state == .Starting {
+                return request.completionBlock(.OutOfOrder)
+            }
+        case .SessionAccept:
+            if role == .Initiator || state == .Pending {
+                return request.completionBlock(.OutOfOrder)
+            }
+        default:
+            break
+        }
+
+        switch request.action {
+        case .SessionInitiate:
+            state = .Pending
+            var outgoingRequest = JingleRequest(sid: sid, action: .SessionInitiate, completionBlock: request.completionBlock)
+            outgoingRequest.initiator = initiator
+            sendRequest(outgoingRequest)
+        case .SessionAccept:
+            state = .Active
+            var outgoingRequest = JingleRequest(sid: sid, action: .SessionAccept, completionBlock: request.completionBlock)
+            outgoingRequest.responder = responder
+            sendRequest(outgoingRequest)
+        case .SessionTerminate:
+            state = .Ended
+            var outgoingRequest = JingleRequest(sid: sid, action: .SessionTerminate, completionBlock: request.completionBlock)
+            outgoingRequest.reason = request.reason
+            sendRequest(outgoingRequest)
+        default:
+            break
+        }
+    }
+
+    private func processLocalRequest(request: JingleRequest) {
+        let operation = NSBlockOperation() {
+            self.internalProcessLocalRequest(request)
+        }
+        // TODO: Enum for .Remote and .Local and remap .Normal and .High?
+        operation.queuePriority = .High
+        queue.addOperation(operation)
+    }
+
+    func start(completionBlock: (JingleAck) -> Void) {
+        processLocalRequest(JingleRequest(sid: sid, action: .SessionInitiate, completionBlock: completionBlock))
+    }
+
+    func accept(completionBlock: (JingleAck) -> Void) {
+        processLocalRequest(JingleRequest(sid: sid, action: .SessionAccept, completionBlock: completionBlock))
+    }
+
+    func endWithReason(reason: JingleReason?, completionBlock: (JingleAck) -> Void) {
+        var request = JingleRequest(sid: sid, action: .SessionTerminate, completionBlock: completionBlock)
+        request.reason = reason
+        processLocalRequest(request)
     }
 }

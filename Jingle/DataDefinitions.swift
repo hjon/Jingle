@@ -32,6 +32,26 @@ enum JingleAck {
     case OutOfOrder
 }
 
+enum JingleReason {
+    case AlternativeSession(String, String?)
+    case Busy(String?)
+    case Cancel(String?)
+    case ConnectivityError(String?)
+    case Decline(String?)
+    case Expired(String?)
+    case FailedApplication(String?)
+    case FailedTransport(String?)
+    case GeneralError(String?)
+    case Gone(String?)
+    case IncompatibleParameters(String?)
+    case MediaError(String?)
+    case SecurityError(String?)
+    case Success(String?)
+    case Timeout(String?)
+    case UnsupportedApplications(String?)
+    case UnsupportedTransports(String?)
+}
+
 struct ContentData {
     let creator: Role
     let name: String
@@ -41,12 +61,25 @@ struct ContentData {
     let transport: Any?
 }
 
-struct ActionData {
+struct JingleRequest {
     let sid: String
-    let initiator: String?
-    let responder: String?
+    var initiator: String?
+    var responder: String?
     let action: ActionName
-    let contents: Array<ContentData>?
-    let info: Any?
-    let signalBlock: ((JingleAck) -> Void)
+    var reason: JingleReason?
+    var contents: Array<ContentData>?
+    var info: Any?
+    let completionBlock: ((JingleAck) -> Void)
+
+    init(sid: String, action: ActionName, completionBlock: ((JingleAck) -> Void)) {
+        self.sid = sid
+        self.action = action
+        self.completionBlock = completionBlock
+
+        initiator = nil
+        responder = nil
+        reason = nil
+        contents = nil
+        info = nil
+    }
 }
