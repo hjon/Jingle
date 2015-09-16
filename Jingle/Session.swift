@@ -27,6 +27,7 @@ class Session {
     let role: Role
     let sid: String
     var state = SessionState.Starting
+    var contents = [String: [String: Content]]() // mapped by creator, then name
     private let queue: NSOperationQueue = {
         let queue = NSOperationQueue()
         queue.name = "Sesssion.ActionQueue"
@@ -52,6 +53,25 @@ class Session {
 
     func equivalent(request: JingleRequest) -> Bool {
         return true
+    }
+
+    private func addContent(content: Content) {
+        var creatorContents = contents[content.creator.rawValue] ?? [:]
+        creatorContents[content.name] = content
+        contents[content.creator.rawValue] = creatorContents
+    }
+
+    func contentForCreator(creator: Role, name: String) -> Content? {
+        guard let creatorContents = contents[creator.rawValue] else {
+            return nil
+        }
+        return creatorContents[name]
+    }
+
+    func createContentWithName(name: String?, senders: Senders?, disposition: Disposition?) -> Content {
+        let content = Content(session: self, creator: self.role, name: name ?? NSUUID().UUIDString, senders: senders ?? .Both, disposition: disposition ?? .Session)
+        addContent(content)
+        return content
     }
 
     private func sendRequest(request: JingleRequest) {

@@ -52,7 +52,7 @@ enum JingleReason {
     case UnsupportedTransports(String?)
 }
 
-struct ContentData {
+struct JingleContentRequest {
     let creator: Role
     let name: String
     let disposition: Disposition?
@@ -67,7 +67,7 @@ struct JingleRequest {
     var responder: String?
     let action: ActionName
     var reason: JingleReason?
-    var contents: Array<ContentData>?
+    var contents: Array<JingleContentRequest>?
     var info: Any?
     let completionBlock: ((JingleAck) -> Void)
 

@@ -34,6 +34,7 @@ class Content {
     let disposition: Disposition
     var senders: Senders
     var state = ContentState.Starting
+    var unackedSendersChange: Senders?
 
     init(session: Session, creator: Role, name: String, senders: Senders = .Both, disposition: Disposition = .Session) {
         self.session = session
@@ -41,5 +42,9 @@ class Content {
         self.name = name
         self.senders = senders
         self.disposition = disposition
+    }
+
+    func equivalent(request: JingleContentRequest) -> Bool {
+        return true
     }
 }
