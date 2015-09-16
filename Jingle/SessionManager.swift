@@ -12,14 +12,9 @@ class SessionManager {
     var sessions = [String: [String: Session]]() // mapped by peer, then sid
 
     private func addSession(session: Session) {
-        if let _ = sessions[session.peer] {
-            // TODO: Seems like there ought to be a nicer way of setting something in a nested dictionary situation
-            sessions[session.peer]![session.sid] = session
-        } else {
-            var peerSessions = [String: Session]()
-            peerSessions[session.sid] = session
-            sessions[session.peer] = peerSessions
-        }
+        var peerSessions = sessions[session.peer] ?? [:]
+        peerSessions[session.sid] = session
+        sessions[session.peer] = peerSessions
     }
 
     func sessionForPeer(peer: String, sid: String) -> Session? {
