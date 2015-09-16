@@ -12,8 +12,9 @@ class SessionManager {
     var sessions = [String: [String: Session]]() // mapped by peer, then sid
 
     private func addSession(session: Session) {
-        if var peerSessions = sessions[session.peer] {
-            peerSessions[session.sid] = session
+        if let _ = sessions[session.peer] {
+            // TODO: Seems like there ought to be a nicer way of setting something in a nested dictionary situation
+            sessions[session.peer]![session.sid] = session
         } else {
             var peerSessions = [String: Session]()
             peerSessions[session.sid] = session
@@ -69,14 +70,17 @@ class SessionManager {
                 // Fall through to create the session and process action
             } else if sidOrdering == .Greater {
                 request.completionBlock(.TieBreak)
+                return
             } else {
                 let userOrdering = octetOrderingWithString(peer, me)
                 if userOrdering == .Less {
                     // Fall through to create the session and process action
                 } else if userOrdering == .Greater {
                     request.completionBlock(.TieBreak)
+                    return
                 } else {
                     request.completionBlock(.BadRequest)
+                    return
                 }
             }
         }
