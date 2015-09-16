@@ -55,10 +55,20 @@ enum JingleReason {
 struct JingleContentRequest {
     let creator: Role
     let name: String
-    let disposition: Disposition?
-    let senders: Senders?
-    let application: Any?
-    let transport: Any?
+    var disposition: Disposition?
+    var senders: Senders?
+    var application: Any?
+    var transport: Any?
+
+    init(creator: Role, name: String) {
+        self.creator = creator
+        self.name = name
+
+        disposition = nil
+        senders = nil
+        application = nil
+        transport = nil
+    }
 }
 
 struct JingleRequest {

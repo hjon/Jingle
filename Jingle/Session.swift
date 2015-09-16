@@ -44,6 +44,14 @@ class Session {
         }
     }
 
+    var peerRole: Role {
+        if role == .Initiator {
+            return .Responder
+        } else {
+            return .Initiator
+        }
+    }
+
     init(initiator: String, responder: String, role: Role, sid: String) {
         self.initiator = initiator
         self.responder = responder
@@ -68,6 +76,10 @@ class Session {
         return creatorContents[name]
     }
 
+    private func contentsForCreator(creator: Role) -> [String: Content]? {
+        return contents[creator.rawValue]
+    }
+
     func createContentWithName(name: String?, senders: Senders?, disposition: Disposition?) -> Content {
         let content = Content(session: self, creator: self.role, name: name ?? NSUUID().UUIDString, senders: senders ?? .Both, disposition: disposition ?? .Session)
         addContent(content)
@@ -88,6 +100,40 @@ class Session {
             if role != .Initiator || state != .Pending {
                 return request.completionBlock(.OutOfOrder)
             }
+        case .ContentAdd:
+            if request.contents == nil || request.contents?.count == 0 {
+                request.completionBlock(.BadRequest)
+                return
+            }
+            if self.role == .Initiator {
+                if let creatorContents = contentsForCreator(self.role) {
+                    for (_, content) in creatorContents {
+                        let contentRequest = JingleContentRequest(creator: self.role, name: "test")
+                        if content.state == .Unacked && content.equivalent(contentRequest) {
+                            request.completionBlock(.TieBreak)
+                            return
+                        }
+                    }
+                }
+            }
+        case .ContentModify:
+            if request.contents == nil || request.contents?.count == 0 {
+                request.completionBlock(.BadRequest)
+                return
+            }
+            if self.role == .Initiator {
+                if let requestContents = request.contents {
+                    for contentRequest in requestContents {
+                        let existingContent = contentForCreator(contentRequest.creator, name: contentRequest.name)
+                        if let unackedSendersChange = existingContent?.unackedSendersChange, requestSendersChange = contentRequest.senders {
+                            if unackedSendersChange != requestSendersChange {
+                                request.completionBlock(.TieBreak)
+                                return
+                            }
+                        }
+                    }
+                }
+            }
         default:
             break
         }
@@ -101,6 +147,13 @@ class Session {
             state = .Active
         case .SessionTerminate:
             state = .Ended
+        case .ContentAdd:
+            if let contents = request.contents {
+                for contentRequest in contents {
+                    let content = Content(session: self, creator: peerRole, name: contentRequest.name, senders: contentRequest.senders ?? .Both, disposition: contentRequest.disposition ?? .Session)
+                    addContent(content)
+                }
+            }
         default:
             break
         }
@@ -166,6 +219,7 @@ class Session {
         queue.addOperation(operation)
     }
 
+    // MARK: Session actions
     func start(completionBlock: (JingleAck) -> Void) {
         processLocalRequest(JingleRequest(sid: sid, action: .SessionInitiate, completionBlock: completionBlock))
     }
