@@ -72,7 +72,7 @@ class Session {
             break
         }
 
-        request.completionBlock(.Ack)
+        request.completionBlock(.Ok)
 
         switch request.action {
         case .SessionInitiate:
@@ -113,7 +113,7 @@ class Session {
         case .SessionInitiate:
             state = .Unacked
             var outgoingRequest = JingleRequest(sid: sid, action: .SessionInitiate) { jingleAck in
-                if jingleAck == .Ack {
+                if jingleAck == .Ok {
                     self.state = .Pending
                 } else {
                     self.state = .Ended

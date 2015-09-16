@@ -94,7 +94,7 @@ class OutOfOrderTests: XCTestCase {
 
         let ackExpectation = self.expectationWithDescription("Session initiate on responder's session")
         let request = JingleRequest(sid: "12345", action: .SessionInitiate) { jingleAck in
-            XCTAssertEqual(jingleAck, JingleAck.Ack, "Was not .Ack; should process session initiate on responder's session in .Starting")
+            XCTAssertEqual(jingleAck, JingleAck.Ok, "Was not .Ok; should process session initiate on responder's session in .Starting")
             ackExpectation.fulfill()
         }
         responderSession.processRequest(request)
@@ -187,7 +187,7 @@ class OutOfOrderTests: XCTestCase {
 
         let ackExpectation = self.expectationWithDescription("Session accept on initiator's session")
         let request = JingleRequest(sid: "12345", action: .SessionAccept) { jingleAck in
-            XCTAssertEqual(jingleAck, JingleAck.Ack, "Was not .Ack; should process session accept on initiator's session in .Pending")
+            XCTAssertEqual(jingleAck, JingleAck.Ok, "Was not .Ok; should process session accept on initiator's session in .Pending")
             ackExpectation.fulfill()
         }
         initiatorSession.processRequest(request)

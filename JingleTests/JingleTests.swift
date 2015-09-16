@@ -26,7 +26,7 @@ class JingleTests: XCTestCase {
         let sessionExpectation = self.expectationWithDescription("Unknown session")
         let sessionManager = SessionManager()
         let request = JingleRequest(sid: "12345", action: .SessionInitiate) { jingleAck in
-            XCTAssertEqual(jingleAck, JingleAck.Ack, "Was not .Ack")
+            XCTAssertEqual(jingleAck, JingleAck.Ok, "Was not .Ok")
             sessionExpectation.fulfill()
         }
         sessionManager.processRequest(request, me: "me@example.com", peer: "peer@example.com")
@@ -73,7 +73,7 @@ class JingleTests: XCTestCase {
 
         let tieBreakExpectation = self.expectationWithDescription("Tie break - lose with higher local SID")
         let request = JingleRequest(sid: " \(session.sid)", action: .SessionInitiate) { jingleAck in
-            XCTAssertTrue(jingleAck == .Ack, "Was not .Ack")
+            XCTAssertTrue(jingleAck == .Ok, "Was not .Ok")
             tieBreakExpectation.fulfill()
         }
         sessionManager.processRequest(request, me: "me@example.com", peer: "peer@example.com")
@@ -105,7 +105,7 @@ class JingleTests: XCTestCase {
 
         let tieBreakExpectation = self.expectationWithDescription("Tie break - lose with higher self ID")
         let request = JingleRequest(sid: "\(session.sid)", action: .SessionInitiate) { jingleAck in
-            XCTAssertEqual(jingleAck, JingleAck.Ack, "Was not .Ack")
+            XCTAssertEqual(jingleAck, JingleAck.Ok, "Was not .Ok")
             tieBreakExpectation.fulfill()
         }
         sessionManager.processRequest(request, me: "zme@example.com", peer: "peer@example.com")

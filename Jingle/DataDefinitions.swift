@@ -25,7 +25,7 @@ enum ActionName: String {
 }
 
 enum JingleAck {
-    case Ack
+    case Ok
     case BadRequest
     case TieBreak
     case UnknownSession
