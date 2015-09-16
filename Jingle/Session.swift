@@ -15,6 +15,7 @@ enum Role: String {
 
 enum SessionState {
     case Starting
+    case Unacked
     case Pending
     case Active
     case Ended
@@ -110,8 +111,15 @@ class Session {
 
         switch request.action {
         case .SessionInitiate:
-            state = .Pending
-            var outgoingRequest = JingleRequest(sid: sid, action: .SessionInitiate, completionBlock: request.completionBlock)
+            state = .Unacked
+            var outgoingRequest = JingleRequest(sid: sid, action: .SessionInitiate) { jingleAck in
+                if jingleAck == .Ack {
+                    self.state = .Pending
+                } else {
+                    self.state = .Ended
+                }
+                request.completionBlock(jingleAck)
+            }
             outgoingRequest.initiator = initiator
             sendRequest(outgoingRequest)
         case .SessionAccept:

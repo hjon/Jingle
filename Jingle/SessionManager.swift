@@ -47,8 +47,10 @@ class SessionManager {
 
     func processRequest(request: JingleRequest, me: String, peer: String) {
         if let session = sessionForPeer(peer, sid: request.sid) {
-            session.processRequest(request)
-            return
+            if session.state == .Pending || session.state == .Active {
+                session.processRequest(request)
+                return
+            }
         }
 
         guard request.action == .SessionInitiate else {
@@ -59,7 +61,7 @@ class SessionManager {
         var pendingSessions = [Session]()
         if let peerSessions = sessionsForPeer(peer) {
             for (_, session) in peerSessions {
-                if session.state == .Pending && session.equivalent(request) {
+                if session.state == .Unacked && session.equivalent(request) {
                     pendingSessions += [session]
                 }
             }

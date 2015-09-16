@@ -50,12 +50,12 @@ class JingleTests: XCTestCase {
         self.waitForExpectationsWithTimeout(1, handler: nil)
     }
 
-    func testTieBreakWinWithLowerSID() {
+    func testTieBreakWinWithLowerLocalSID() {
         let sessionManager = SessionManager()
         let session = sessionManager.createSession("me@example.com", peer: "peer@example.com")
-        session.state = .Pending
+        session.state = .Unacked
 
-        let tieBreakExpectation = self.expectationWithDescription("Tie break - win with lower SID")
+        let tieBreakExpectation = self.expectationWithDescription("Tie break - win with lower local SID")
         let request = JingleRequest(sid: "\(session.sid)1", action: .SessionInitiate) { jingleAck in
             XCTAssertEqual(jingleAck, JingleAck.TieBreak, "Was not .TieBreak")
             tieBreakExpectation.fulfill()
@@ -66,12 +66,12 @@ class JingleTests: XCTestCase {
         self.waitForExpectationsWithTimeout(1, handler: nil)
     }
 
-    func testTieBreakLoseWithHigherSID() {
+    func testTieBreakLoseWithHigherLocalSID() {
         let sessionManager = SessionManager()
         let session = sessionManager.createSession("me@example.com", peer: "peer@example.com")
-        session.state = .Pending
+        session.state = .Unacked
 
-        let tieBreakExpectation = self.expectationWithDescription("Tie break - lose with higher SID")
+        let tieBreakExpectation = self.expectationWithDescription("Tie break - lose with higher local SID")
         let request = JingleRequest(sid: " \(session.sid)", action: .SessionInitiate) { jingleAck in
             XCTAssertTrue(jingleAck == .Ack, "Was not .Ack")
             tieBreakExpectation.fulfill()
@@ -82,4 +82,51 @@ class JingleTests: XCTestCase {
         self.waitForExpectationsWithTimeout(1, handler: nil)
     }
 
+    func testTieBreakWinWithLowerSelfID() {
+        let sessionManager = SessionManager()
+        let session = sessionManager.createSession("me@example.com", peer: "peer@example.com")
+        session.state = .Unacked
+
+        let tieBreakExpectation = self.expectationWithDescription("Tie break - with lower self ID")
+        let request = JingleRequest(sid: "\(session.sid)", action: .SessionInitiate) { jingleAck in
+            XCTAssertEqual(jingleAck, JingleAck.TieBreak, "Was not .TieBreak")
+            tieBreakExpectation.fulfill()
+        }
+        sessionManager.processRequest(request, me: "me@example.com", peer: "peer@example.com")
+        XCTAssertTrue(sessionManager.sessionsForPeer("peer@example.com")?.count == 1, "Incorrect number of sessions for peer")
+
+        self.waitForExpectationsWithTimeout(1, handler: nil)
+    }
+
+    func testTieBreakLoseWithHigherSelfID() {
+        let sessionManager = SessionManager()
+        let session = sessionManager.createSession("zme@example.com", peer: "peer@example.com")
+        session.state = .Unacked
+
+        let tieBreakExpectation = self.expectationWithDescription("Tie break - lose with higher self ID")
+        let request = JingleRequest(sid: "\(session.sid)", action: .SessionInitiate) { jingleAck in
+            XCTAssertEqual(jingleAck, JingleAck.Ack, "Was not .Ack")
+            tieBreakExpectation.fulfill()
+        }
+        sessionManager.processRequest(request, me: "zme@example.com", peer: "peer@example.com")
+        XCTAssertEqual(sessionManager.sessionsForPeer("peer@example.com")?.count, 1, "Incorrect number of sessions for peer")
+
+        self.waitForExpectationsWithTimeout(1, handler: nil)
+    }
+
+    func testTieBreakBadRequestWithSameEverything() {
+        let sessionManager = SessionManager()
+        let session = sessionManager.createSession("me@example.com", peer: "me@example.com")
+        session.state = .Unacked
+
+        let tieBreakExpectation = self.expectationWithDescription("Tie break - bad request with everything the same")
+        let request = JingleRequest(sid: "\(session.sid)", action: .SessionInitiate) { jingleAck in
+            XCTAssertEqual(jingleAck, JingleAck.BadRequest, "Was not .BadRequest")
+            tieBreakExpectation.fulfill()
+        }
+        sessionManager.processRequest(request, me: "me@example.com", peer: "me@example.com")
+        XCTAssertEqual(sessionManager.sessionsForPeer("me@example.com")?.count, 1, "Incorrect number of sessions for peer")
+
+        self.waitForExpectationsWithTimeout(1, handler: nil)
+    }
 }
