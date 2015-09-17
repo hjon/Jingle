@@ -77,7 +77,7 @@ struct JingleRequest {
     var responder: String?
     let action: ActionName
     var reason: JingleReason?
-    var contents: Array<JingleContentRequest>?
+    var contents = [JingleContentRequest]()
     var info: Any?
     let completionBlock: ((JingleAck) -> Void)
 
@@ -89,7 +89,6 @@ struct JingleRequest {
         initiator = nil
         responder = nil
         reason = nil
-        contents = nil
         info = nil
     }
 }
