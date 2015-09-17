@@ -48,3 +48,15 @@ class Content {
         return true
     }
 }
+
+extension Content: Equatable {}
+
+func ==(lhs: Content, rhs: Content) -> Bool {
+    return lhs.hashValue == rhs.hashValue
+}
+
+extension Content: Hashable {
+    var hashValue: Int {
+        return "\(creator),\(name)".hashValue
+    }
+}
