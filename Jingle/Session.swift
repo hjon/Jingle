@@ -60,7 +60,10 @@ class Session {
     }
 
     func equivalent(request: JingleRequest) -> Bool {
-        return true
+        let count = countEquivalentContents(request.contents) { (content, request) in
+            return true
+        }
+        return count > 0
     }
 
     private func addContent(content: Content) {
@@ -88,6 +91,34 @@ class Session {
 
     private func sendRequest(request: JingleRequest) {
         // Do something and call request.completionBlock
+    }
+
+    typealias ContentFilter = (content: Content, contentRequest: JingleContentRequest) -> Bool
+
+    private func countEquivalentContents(contentRequests: [JingleContentRequest], filter: ContentFilter) -> Int {
+        var equivalentContents = Set<Content>()
+        for request in contentRequests {
+            if let contents = contentsForCreator(request.creator) {
+                for (_, content) in contents where content.equivalent(request) {
+                    if filter(content: content, contentRequest: request) {
+                        equivalentContents.insert(content)
+                    }
+                }
+            }
+        }
+        return equivalentContents.count
+    }
+
+    private func countAffectedContents(contentRequests: [JingleContentRequest], filter: ContentFilter) -> Int {
+        var affectedContents = Set<Content>()
+        for request in contentRequests {
+            if let content = contentForCreator(request.creator, name: request.name) {
+                if filter(content: content, contentRequest: request) {
+                    affectedContents.insert(content)
+                }
+            }
+        }
+        return affectedContents.count
     }
 
     private func internalProcessRemoteRequest(request: JingleRequest) {
