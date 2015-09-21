@@ -60,10 +60,7 @@ class Session {
     }
 
     func equivalent(request: JingleRequest) -> Bool {
-        let count = countEquivalentContents(request.contents) { (content, request) in
-            return true
-        }
-        return count > 0
+        return countEquivalentContents(request.contents) > 0
     }
 
     private func addContent(content: Content) {
@@ -134,16 +131,14 @@ class Session {
         }
 
         // Make sure any action that needs to include contents actually includes contents in the request
-        let requiredContentActions: Set<ActionName> = [.SessionInitiate, .SessionAccept, .ContentAdd, .ContentAccept, .ContentRemove, .ContentReject, .ContentModify, .TransportReplace, .TransportReject, .TransportAccept]
-        if requiredContentActions.contains(request.action) {
+        if request.action.requiresContent() {
             guard request.contents.count > 0 else {
                 request.completionBlock(.BadRequest)
                 return
             }
         }
 
-        let actionMapping: Dictionary<ActionName, ActionName> = [.SessionInitiate: .ContentAdd, .SessionAccept: .ContentAccept, .SessionTerminate: .ContentRemove]
-        let contentAction = actionMapping[request.action] ?? request.action
+        let contentAction = request.action.contentAction()
 
         // Check for content-level tie breaks
         if self.role == .Initiator && contentAction == .ContentAdd {
@@ -154,41 +149,21 @@ class Session {
         }
 
         // Content-level validations
-        var ackResults = [JingleAck]()
+        var validationResults = [JingleAck]()
         for contentRequest in request.contents {
             if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
-                ackResults.append(localContent.validateRemoteAction(contentAction, request: contentRequest))
+                validationResults.append(localContent.validateRemoteAction(contentAction, request: contentRequest))
             } else {
                 if contentAction != .ContentAdd {
-                    ackResults.append(.BadRequest)
+                    validationResults.append(.BadRequest)
                 }
-            }
-        }
-
-        let ack = ackResults.reduce(JingleAck.Ok) { previous, current in
-            switch current {
-            case .BadRequest:
-                return .BadRequest
-            case .TieBreak:
-                if previous == .BadRequest {
-                    return .BadRequest
-                } else {
-                    return .TieBreak
-                }
-            case .OutOfOrder:
-                if previous == .Ok {
-                    return .OutOfOrder
-                } else {
-                    return previous
-                }
-            case .Ok:
-                return previous
             }
         }
 
         // Ack that we received the request with the results of precondition checks
-        request.completionBlock(ack)
-        guard ack == .Ok else {
+        let finalAck = JingleAck.reduceAcks(validationResults)
+        request.completionBlock(finalAck)
+        guard finalAck == .Ok else {
             return
         }
 
@@ -229,19 +204,47 @@ class Session {
     }
 
     private func internalProcessLocalRequest(request: JingleRequest) {
-        switch request.action {
-        case .SessionInitiate:
-            if role == .Responder || state == .Starting {
+        // Check for out-of-order session requests
+        if request.action == .SessionInitiate {
+            guard role == .Initiator && state == .Starting else {
                 return request.completionBlock(.OutOfOrder)
             }
-        case .SessionAccept:
-            if role == .Initiator || state == .Pending {
+        } else if request.action == .SessionAccept {
+            guard role == .Responder && state == .Pending else {
                 return request.completionBlock(.OutOfOrder)
             }
-        default:
-            break
         }
 
+        // Make sure any action that needs to include contents actually includes contents in the request
+        if request.action.requiresContent() {
+            guard request.contents.count > 0 else {
+                request.completionBlock(.BadRequest)
+                return
+            }
+        }
+
+        let contentAction = request.action.contentAction()
+
+        // Content-level validations
+        var validationResults = [JingleAck]()
+        for contentRequest in request.contents {
+            if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
+                validationResults.append(localContent.validateLocalAction(contentAction, request: contentRequest))
+            } else {
+                if contentAction != .ContentAdd {
+                    validationResults.append(.BadRequest)
+                }
+            }
+        }
+
+        // Ack that we received the request with the results of precondition checks
+        let finalAck = JingleAck.reduceAcks(validationResults)
+        request.completionBlock(finalAck)
+        guard finalAck == .Ok else {
+            return
+        }
+
+        // Perform the action
         switch request.action {
         case .SessionInitiate:
             state = .Unacked
@@ -267,6 +270,20 @@ class Session {
             sendRequest(outgoingRequest)
         default:
             break
+        }
+
+        if contentAction == .ContentAdd {
+            for contentRequest in request.contents {
+                let content = Content(session: self, creator: contentRequest.creator, name: contentRequest.name, senders: contentRequest.senders ?? .Both, disposition: contentRequest.disposition ?? .Session)
+                addContent(content)
+            }
+        }
+
+        for contentRequest in request.contents {
+            if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
+                // TODO: Want to make sure all of these have executed before moving on
+                localContent.executeRemoteAction(contentAction, request: contentRequest)
+            }
         }
     }
 

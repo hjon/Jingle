@@ -88,6 +88,41 @@ class Content {
             return
         }
     }
+
+    func validateLocalAction(action: ActionName, request: JingleContentRequest) -> JingleAck {
+        switch action {
+        case .ContentAdd:
+            guard state == .Starting else {
+                return .OutOfOrder
+            }
+        case .ContentModify:
+            guard state == .Pending || state == .Active else {
+                return .OutOfOrder
+            }
+        case .ContentAccept, .ContentReject:
+            guard creator != session.role && state == .Pending else {
+                return .OutOfOrder
+            }
+        default:
+            return .Ok
+        }
+        return .Ok
+    }
+
+    func executeLocalAction(action: ActionName, request: JingleContentRequest) {
+        switch action {
+        case .ContentAdd:
+            state = .Pending
+        case .ContentAccept:
+            state = .Active
+        case .ContentReject:
+            state = .Rejected
+        case .ContentRemove:
+            state = .Removed
+        default:
+            return
+        }
+    }
 }
 
 extension Content: Equatable {}

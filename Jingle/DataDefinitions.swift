@@ -22,6 +22,28 @@ enum ActionName: String {
     case TransportInfo = "transport-info"
     case TransportReject = "transport-reject"
     case TransportReplace = "transport-replace"
+
+    func requiresContent() -> Bool {
+        let requiredContentActions: Set<ActionName> = [.SessionInitiate, .SessionAccept, .ContentAdd, .ContentAccept, .ContentRemove, .ContentReject, .ContentModify, .TransportReplace, .TransportReject, .TransportAccept]
+        if requiredContentActions.contains(self) {
+            return true
+        } else {
+            return false
+        }
+    }
+
+    func contentAction -> ActionName {
+        switch self {
+        case .SessionInitiate:
+            return .ContentAdd
+        case .SessionAccept:
+            return .ContentAccept
+        case .SessionTerminate:
+            return .ContentRemove
+        default:
+            return self
+        }
+    }
 }
 
 enum JingleAck {
@@ -30,6 +52,35 @@ enum JingleAck {
     case TieBreak
     case UnknownSession
     case OutOfOrder
+
+    static func reduceAcks(acks: [JingleAck]) -> JingleAck {
+        return acks.reduce(JingleAck.Ok) { previous, current in
+            switch current {
+            case .BadRequest:
+                return .BadRequest
+            case .TieBreak:
+                if previous == .BadRequest {
+                    return .BadRequest
+                } else {
+                    return .TieBreak
+                }
+            case .OutOfOrder:
+                if previous == .Ok || previous == .UnknownSession {
+                    return .OutOfOrder
+                } else {
+                    return previous
+                }
+            case .UnknownSession:
+                if previous == .Ok {
+                    return .UnknownSession
+                } else {
+                    return previous
+                }
+            case .Ok:
+                return previous
+            }
+        }
+    }
 }
 
 enum JingleReason {
