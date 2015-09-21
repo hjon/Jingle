@@ -122,6 +122,30 @@ class Session {
     }
 
     private func internalProcessRemoteRequest(request: JingleRequest) {
+        // Make sure any action that needs to include contents actually includes contents in the request
+        let requiredContentActions: Set<ActionName> = [.SessionInitiate, .SessionAccept, .ContentAdd, .ContentAccept, .ContentRemove, .ContentReject, .ContentModify, .TransportReplace, .TransportReject, .TransportAccept]
+        if requiredContentActions.contains(request.action) {
+            guard request.contents.count > 0 else {
+                request.completionBlock(.BadRequest)
+                return
+            }
+        }
+
+        // Make sure SessionInitiate and ContentAdd don't try to change any existing contents; make sure any other request isn't trying to add a content
+        let numAffectedContents = countAffectedContents(request.contents) { content, contentRequest in return true }
+        if request.action == .SessionInitiate || request.action == .ContentAdd {
+            guard numAffectedContents == 0 else {
+                request.completionBlock(.BadRequest)
+                return
+            }
+        } else {
+            guard numAffectedContents == request.contents.count else {
+                request.completionBlock(.BadRequest)
+                return
+            }
+        }
+
+        // Check for out-of-order session requests
         switch request.action {
         case .SessionInitiate:
             if role == .Initiator || state != .Starting {
@@ -131,46 +155,58 @@ class Session {
             if role != .Initiator || state != .Pending {
                 return request.completionBlock(.OutOfOrder)
             }
-        case .ContentAdd:
-            if request.contents == nil || request.contents?.count == 0 {
-                request.completionBlock(.BadRequest)
-                return
-            }
-            if self.role == .Initiator {
-                if let creatorContents = contentsForCreator(self.role) {
-                    for (_, content) in creatorContents {
-                        let contentRequest = JingleContentRequest(creator: self.role, name: "test")
-                        if content.state == .Unacked && content.equivalent(contentRequest) {
-                            request.completionBlock(.TieBreak)
-                            return
-                        }
-                    }
-                }
-            }
-        case .ContentModify:
-            if request.contents == nil || request.contents?.count == 0 {
-                request.completionBlock(.BadRequest)
-                return
-            }
-            if self.role == .Initiator {
-                if let requestContents = request.contents {
-                    for contentRequest in requestContents {
-                        let existingContent = contentForCreator(contentRequest.creator, name: contentRequest.name)
-                        if let unackedSendersChange = existingContent?.unackedSendersChange, requestSendersChange = contentRequest.senders {
-                            if unackedSendersChange != requestSendersChange {
-                                request.completionBlock(.TieBreak)
-                                return
-                            }
-                        }
-                    }
-                }
-            }
         default:
             break
         }
 
+        // Check for content-level tie breaks
+        if self.role == .Initiator {
+            switch request.action {
+            case .ContentAdd:
+                let numEquivalentContents = countEquivalentContents(request.contents) { content, contentRequest in
+                    return content.state == .Unacked
+                }
+                if numEquivalentContents > 0 {
+                    request.completionBlock(.TieBreak)
+                    return
+                }
+            case .ContentModify:
+                let numAffectedContents = countAffectedContents(request.contents) { content, contentRequest in
+                    if let unackedSendersChange = content.unackedSendersChange, requestSendersChange = contentRequest.senders {
+                        return !(unackedSendersChange == requestSendersChange)
+                    } else {
+                        return false
+                    }
+                }
+                if numAffectedContents > 0 {
+                    request.completionBlock(.TieBreak)
+                    return
+                }
+            default:
+                break
+            }
+        }
+
+        // Make sure all content requests are in-order
+        let numInOrderRequests = countAffectedContents(request.contents) { content, contentRequest in
+            switch request.action {
+            case .ContentModify:
+                return (content.state == .Pending || content.state == .Active)
+            case .ContentAccept, .ContentReject:
+                return (contentRequest.creator == self.role && content.state == .Pending)
+            default:
+                return true
+            }
+        }
+        if numInOrderRequests != request.contents.count {
+            request.completionBlock(.OutOfOrder)
+            return
+        }
+
+        // Ack that we received the request (with no precondition failures) and we're about to process the request
         request.completionBlock(.Ok)
 
+        // Perform the action
         switch request.action {
         case .SessionInitiate:
             state = .Pending
@@ -179,11 +215,9 @@ class Session {
         case .SessionTerminate:
             state = .Ended
         case .ContentAdd:
-            if let contents = request.contents {
-                for contentRequest in contents {
-                    let content = Content(session: self, creator: peerRole, name: contentRequest.name, senders: contentRequest.senders ?? .Both, disposition: contentRequest.disposition ?? .Session)
-                    addContent(content)
-                }
+            for contentRequest in request.contents {
+                let content = Content(session: self, creator: peerRole, name: contentRequest.name, senders: contentRequest.senders ?? .Both, disposition: contentRequest.disposition ?? .Session)
+                addContent(content)
             }
         default:
             break
