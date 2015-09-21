@@ -47,6 +47,47 @@ class Content {
     func equivalent(request: JingleContentRequest) -> Bool {
         return true
     }
+
+    func validateRemoteAction(action: ActionName, request: JingleContentRequest) -> JingleAck {
+        switch action {
+        case .ContentAdd:
+            guard state == .Starting else {
+                return .OutOfOrder
+            }
+        case .ContentModify:
+            guard state == .Pending || state == .Active else {
+                return .OutOfOrder
+            }
+
+            if let unackedSenders = unackedSendersChange, requestSenders = request.senders {
+                if session.role == .Initiator && unackedSenders == requestSenders {
+                    return .TieBreak
+                }
+            }
+        case .ContentAccept, .ContentReject:
+            guard creator == session.role && state == .Pending else {
+                return .OutOfOrder
+            }
+        default:
+            return .Ok
+        }
+        return .Ok
+    }
+
+    func executeRemoteAction(action: ActionName, request: JingleContentRequest) {
+        switch action {
+        case .ContentAdd:
+            state = .Pending
+        case .ContentAccept:
+            state = .Active
+        case .ContentReject:
+            state = .Rejected
+        case .ContentRemove:
+            state = .Removed
+        default:
+            return
+        }
+    }
 }
 
 extension Content: Equatable {}

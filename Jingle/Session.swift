@@ -95,12 +95,12 @@ class Session {
 
     typealias ContentFilter = (content: Content, contentRequest: JingleContentRequest) -> Bool
 
-    private func countEquivalentContents(contentRequests: [JingleContentRequest], filter: ContentFilter) -> Int {
+    private func countEquivalentContents(contentRequests: [JingleContentRequest]) -> Int {
         var equivalentContents = Set<Content>()
         for request in contentRequests {
             if let contents = contentsForCreator(request.creator) {
                 for (_, content) in contents where content.equivalent(request) {
-                    if filter(content: content, contentRequest: request) {
+                    if content.state == .Unacked {
                         equivalentContents.insert(content)
                     }
                 }
@@ -122,6 +122,17 @@ class Session {
     }
 
     private func internalProcessRemoteRequest(request: JingleRequest) {
+        // Check for out-of-order session requests
+        if request.action == .SessionInitiate {
+            guard role == .Responder && state == .Starting else {
+                return request.completionBlock(.OutOfOrder)
+            }
+        } else if request.action == .SessionAccept {
+            guard role == .Initiator && state == .Pending else {
+                return request.completionBlock(.OutOfOrder)
+            }
+        }
+
         // Make sure any action that needs to include contents actually includes contents in the request
         let requiredContentActions: Set<ActionName> = [.SessionInitiate, .SessionAccept, .ContentAdd, .ContentAccept, .ContentRemove, .ContentReject, .ContentModify, .TransportReplace, .TransportReject, .TransportAccept]
         if requiredContentActions.contains(request.action) {
@@ -131,80 +142,55 @@ class Session {
             }
         }
 
-        // Make sure SessionInitiate and ContentAdd don't try to change any existing contents; make sure any other request isn't trying to add a content
-        let numAffectedContents = countAffectedContents(request.contents) { content, contentRequest in return true }
-        if request.action == .SessionInitiate || request.action == .ContentAdd {
-            guard numAffectedContents == 0 else {
-                request.completionBlock(.BadRequest)
-                return
-            }
-        } else {
-            guard numAffectedContents == request.contents.count else {
-                request.completionBlock(.BadRequest)
-                return
-            }
-        }
-
-        // Check for out-of-order session requests
-        switch request.action {
-        case .SessionInitiate:
-            if role == .Initiator || state != .Starting {
-                return request.completionBlock(.OutOfOrder)
-            }
-        case .SessionAccept:
-            if role != .Initiator || state != .Pending {
-                return request.completionBlock(.OutOfOrder)
-            }
-        default:
-            break
-        }
+        let actionMapping: Dictionary<ActionName, ActionName> = [.SessionInitiate: .ContentAdd, .SessionAccept: .ContentAccept, .SessionTerminate: .ContentRemove]
+        let contentAction = actionMapping[request.action] ?? request.action
 
         // Check for content-level tie breaks
-        if self.role == .Initiator {
-            switch request.action {
-            case .ContentAdd:
-                let numEquivalentContents = countEquivalentContents(request.contents) { content, contentRequest in
-                    return content.state == .Unacked
-                }
-                if numEquivalentContents > 0 {
-                    request.completionBlock(.TieBreak)
-                    return
-                }
-            case .ContentModify:
-                let numAffectedContents = countAffectedContents(request.contents) { content, contentRequest in
-                    if let unackedSendersChange = content.unackedSendersChange, requestSendersChange = contentRequest.senders {
-                        return !(unackedSendersChange == requestSendersChange)
-                    } else {
-                        return false
-                    }
-                }
-                if numAffectedContents > 0 {
-                    request.completionBlock(.TieBreak)
-                    return
-                }
-            default:
-                break
+        if self.role == .Initiator && contentAction == .ContentAdd {
+            if countEquivalentContents(request.contents) > 0 {
+                request.completionBlock(.TieBreak)
+                return
             }
         }
 
-        // Make sure all content requests are in-order
-        let numInOrderRequests = countAffectedContents(request.contents) { content, contentRequest in
-            switch request.action {
-            case .ContentModify:
-                return (content.state == .Pending || content.state == .Active)
-            case .ContentAccept, .ContentReject:
-                return (contentRequest.creator == self.role && content.state == .Pending)
-            default:
-                return true
+        // Content-level validations
+        var ackResults = [JingleAck]()
+        for contentRequest in request.contents {
+            if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
+                ackResults.append(localContent.validateRemoteAction(contentAction, request: contentRequest))
+            } else {
+                if contentAction != .ContentAdd {
+                    ackResults.append(.BadRequest)
+                }
             }
         }
-        if numInOrderRequests != request.contents.count {
-            request.completionBlock(.OutOfOrder)
+
+        let ack = ackResults.reduce(JingleAck.Ok) { previous, current in
+            switch current {
+            case .BadRequest:
+                return .BadRequest
+            case .TieBreak:
+                if previous == .BadRequest {
+                    return .BadRequest
+                } else {
+                    return .TieBreak
+                }
+            case .OutOfOrder:
+                if previous == .Ok {
+                    return .OutOfOrder
+                } else {
+                    return previous
+                }
+            case .Ok:
+                return previous
+            }
+        }
+
+        // Ack that we received the request with the results of precondition checks
+        request.completionBlock(ack)
+        guard ack == .Ok else {
             return
         }
-
-        // Ack that we received the request (with no precondition failures) and we're about to process the request
-        request.completionBlock(.Ok)
 
         // Perform the action
         switch request.action {
@@ -214,13 +200,22 @@ class Session {
             state = .Active
         case .SessionTerminate:
             state = .Ended
-        case .ContentAdd:
-            for contentRequest in request.contents {
-                let content = Content(session: self, creator: peerRole, name: contentRequest.name, senders: contentRequest.senders ?? .Both, disposition: contentRequest.disposition ?? .Session)
-                addContent(content)
-            }
         default:
             break
+        }
+
+        if contentAction == .ContentAdd {
+            for contentRequest in request.contents {
+                let content = Content(session: self, creator: contentRequest.creator, name: contentRequest.name, senders: contentRequest.senders ?? .Both, disposition: contentRequest.disposition ?? .Session)
+                addContent(content)
+            }
+        }
+
+        for contentRequest in request.contents {
+            if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
+                // TODO: Want to make sure all of these have executed before moving on
+                localContent.executeRemoteAction(contentAction, request: contentRequest)
+            }
         }
     }
 
