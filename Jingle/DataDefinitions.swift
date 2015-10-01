@@ -32,7 +32,7 @@ enum ActionName: String {
         }
     }
 
-    func contentAction -> ActionName {
+    func contentAction() -> ActionName {
         switch self {
         case .SessionInitiate:
             return .ContentAdd
@@ -152,9 +152,9 @@ struct JingleLocalRequest {
     var reason: JingleReason?
     var contents = [JingleContentRequest]()
     var info: Any?
-    let completionBlock: ((JingleAck, JingleReason?) -> Void)
+    let completionBlock: ((JingleAck) -> Void)
 
-    init(sid: String, action: ActionName, completionBlock: ((JingleAck, JingleReason?) -> Void)) {
+    init(sid: String, action: ActionName, completionBlock: ((JingleAck) -> Void)) {
         self.sid = sid
         self.action = action
         self.completionBlock = completionBlock

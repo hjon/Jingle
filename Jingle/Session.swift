@@ -85,7 +85,7 @@ class Session {
         contentRequest.senders = senders ?? .Both
         contentRequest.disposition = disposition ?? .Session
 
-        var request = JingleRequest(sid: sid, action: .ContentAdd, completionBlock: completionBlock)
+        var request = JingleLocalRequest(sid: sid, action: .ContentAdd, completionBlock: completionBlock)
         request.contents = [contentRequest]
         processLocalRequest(request)
     }
@@ -154,13 +154,19 @@ class Session {
 
         // Content-level validations
         var validationResults = [JingleAck]()
+        var newContents = [Content]()
         for contentRequest in request.contents {
-            if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
+            if contentAction == .ContentAdd {
+                let newContent = Content(session: self, creator: contentRequest.creator, name: contentRequest.name, senders: contentRequest.senders ?? .Both, disposition: contentRequest.disposition ?? .Session)
+                let ack = newContent.validateRemoteAction(contentAction, request: contentRequest)
+                if ack == .Ok {
+                    newContents.append(newContent)
+                }
+                validationResults.append(ack)
+            } else if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
                 validationResults.append(localContent.validateRemoteAction(contentAction, request: contentRequest))
             } else {
-                if contentAction != .ContentAdd {
-                    validationResults.append(.BadRequest)
-                }
+                validationResults.append(.BadRequest)
             }
         }
 
@@ -169,6 +175,10 @@ class Session {
         request.completionBlock(finalAck)
         guard finalAck == .Ok else {
             return
+        }
+
+        for content in newContents {
+            addContent(content)
         }
 
         // Perform the action
@@ -181,13 +191,6 @@ class Session {
             state = .Ended
         default:
             break
-        }
-
-        if contentAction == .ContentAdd {
-            for contentRequest in request.contents {
-                let content = Content(session: self, creator: contentRequest.creator, name: contentRequest.name, senders: contentRequest.senders ?? .Both, disposition: contentRequest.disposition ?? .Session)
-                addContent(content)
-            }
         }
 
         // Make sure all of these have executed before moving on
@@ -216,11 +219,11 @@ class Session {
         // Check for out-of-order session requests
         if request.action == .SessionInitiate {
             guard role == .Initiator && state == .Starting else {
-                return request.completionBlock(.OutOfOrder, nil)
+                return request.completionBlock(.OutOfOrder)
             }
         } else if request.action == .SessionAccept {
             guard role == .Responder && state == .Pending else {
-                return request.completionBlock(.OutOfOrder, nil)
+                return request.completionBlock(.OutOfOrder)
             }
         }
 
@@ -228,28 +231,31 @@ class Session {
 
         // Content-level validations
         var validationResults = [JingleAck]()
+        var newContents = [Content]()
         for contentRequest in request.contents {
-            if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
+            if contentAction == .ContentAdd {
+                let newContent = Content(session: self, creator: contentRequest.creator, name: contentRequest.name, senders: contentRequest.senders ?? .Both, disposition: contentRequest.disposition ?? .Session)
+                let ack = newContent.validateLocalAction(contentAction, request: contentRequest)
+                if ack == .Ok {
+                    newContents.append(newContent)
+                }
+                validationResults.append(ack)
+            } else if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
                 validationResults.append(localContent.validateLocalAction(contentAction, request: contentRequest))
             } else {
-                if contentAction != .ContentAdd {
-                    validationResults.append(.BadRequest)
-                }
+                validationResults.append(.BadRequest)
             }
         }
 
         // Ack that we received the request with the results of precondition checks
         let finalAck = JingleAck.reduceAcks(validationResults)
         guard finalAck == .Ok else {
-            request.completionBlock(finalAck, nil)
+            request.completionBlock(finalAck)
             return
         }
 
-        if contentAction == .ContentAdd {
-            for contentRequest in request.contents {
-                let content = Content(session: self, creator: contentRequest.creator, name: contentRequest.name, senders: contentRequest.senders ?? .Both, disposition: contentRequest.disposition ?? .Session)
-                addContent(content)
-            }
+        for content in newContents {
+            addContent(content)
         }
 
         // Make sure all of these have executed before moving on
@@ -274,18 +280,18 @@ class Session {
                 } else {
                     self.state = .Ended
                 }
-                request.completionBlock(jingleAck, nil)
+                request.completionBlock(jingleAck)
             }
             outgoingRequest.initiator = initiator
             sendRequest(outgoingRequest)
         case .SessionAccept:
             state = .Active
-            var outgoingRequest = JingleRequest(sid: sid, action: .SessionAccept) { request.completionBlock($0, nil) }
+            var outgoingRequest = JingleRequest(sid: sid, action: .SessionAccept) { request.completionBlock($0) }
             outgoingRequest.responder = responder
             sendRequest(outgoingRequest)
         case .SessionTerminate:
             state = .Ended
-            var outgoingRequest = JingleRequest(sid: sid, action: .SessionTerminate) { request.completionBlock($0, nil) }
+            var outgoingRequest = JingleRequest(sid: sid, action: .SessionTerminate) { request.completionBlock($0) }
             outgoingRequest.reason = request.reason
             sendRequest(outgoingRequest)
         default:
@@ -293,7 +299,7 @@ class Session {
         }
     }
 
-    private func processLocalRequest(request: JingleRequest) {
+    private func processLocalRequest(request: JingleLocalRequest) {
         let operation = NSBlockOperation() {
             self.internalProcessLocalRequest(request)
         }
@@ -304,15 +310,15 @@ class Session {
 
     // MARK: Session actions
     func start(completionBlock: (JingleAck) -> Void) {
-        processLocalRequest(JingleRequest(sid: sid, action: .SessionInitiate, completionBlock: completionBlock))
+        processLocalRequest(JingleLocalRequest(sid: sid, action: .SessionInitiate, completionBlock: completionBlock))
     }
 
     func accept(completionBlock: (JingleAck) -> Void) {
-        processLocalRequest(JingleRequest(sid: sid, action: .SessionAccept, completionBlock: completionBlock))
+        processLocalRequest(JingleLocalRequest(sid: sid, action: .SessionAccept, completionBlock: completionBlock))
     }
 
     func endWithReason(reason: JingleReason?, completionBlock: (JingleAck) -> Void) {
-        var request = JingleRequest(sid: sid, action: .SessionTerminate, completionBlock: completionBlock)
+        var request = JingleLocalRequest(sid: sid, action: .SessionTerminate, completionBlock: completionBlock)
         request.reason = reason
         processLocalRequest(request)
     }
