@@ -143,3 +143,25 @@ struct JingleRequest {
         info = nil
     }
 }
+
+struct JingleLocalRequest {
+    let sid: String
+    var initiator: String?
+    var responder: String?
+    let action: ActionName
+    var reason: JingleReason?
+    var contents = [JingleContentRequest]()
+    var info: Any?
+    let completionBlock: ((JingleAck, JingleReason?) -> Void)
+
+    init(sid: String, action: ActionName, completionBlock: ((JingleAck, JingleReason?) -> Void)) {
+        self.sid = sid
+        self.action = action
+        self.completionBlock = completionBlock
+
+        initiator = nil
+        responder = nil
+        reason = nil
+        info = nil
+    }
+}

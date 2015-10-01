@@ -80,10 +80,14 @@ class Session {
         return contents[creator.rawValue]
     }
 
-    func createContentWithName(name: String?, senders: Senders?, disposition: Disposition?) -> Content {
-        let content = Content(session: self, creator: self.role, name: name ?? NSUUID().UUIDString, senders: senders ?? .Both, disposition: disposition ?? .Session)
-        addContent(content)
-        return content
+    func addContentForApplication(application: Any?, name: String?, senders: Senders?, disposition: Disposition?, completionBlock: (JingleAck) -> Void) {
+        var contentRequest = JingleContentRequest(creator: role, name: name ?? NSUUID().UUIDString)
+        contentRequest.senders = senders ?? .Both
+        contentRequest.disposition = disposition ?? .Session
+
+        var request = JingleRequest(sid: sid, action: .ContentAdd, completionBlock: completionBlock)
+        request.contents = [contentRequest]
+        processLocalRequest(request)
     }
 
     private func sendRequest(request: JingleRequest) {
@@ -208,23 +212,15 @@ class Session {
         queue.addOperation(operation)
     }
 
-    private func internalProcessLocalRequest(request: JingleRequest) {
+    private func internalProcessLocalRequest(request: JingleLocalRequest) {
         // Check for out-of-order session requests
         if request.action == .SessionInitiate {
             guard role == .Initiator && state == .Starting else {
-                return request.completionBlock(.OutOfOrder)
+                return request.completionBlock(.OutOfOrder, nil)
             }
         } else if request.action == .SessionAccept {
             guard role == .Responder && state == .Pending else {
-                return request.completionBlock(.OutOfOrder)
-            }
-        }
-
-        // Make sure any action that needs to include contents actually includes contents in the request
-        if request.action.requiresContent() {
-            guard request.contents.count > 0 else {
-                request.completionBlock(.BadRequest)
-                return
+                return request.completionBlock(.OutOfOrder, nil)
             }
         }
 
@@ -244,9 +240,16 @@ class Session {
 
         // Ack that we received the request with the results of precondition checks
         let finalAck = JingleAck.reduceAcks(validationResults)
-        request.completionBlock(finalAck)
         guard finalAck == .Ok else {
+            request.completionBlock(finalAck, nil)
             return
+        }
+
+        if contentAction == .ContentAdd {
+            for contentRequest in request.contents {
+                let content = Content(session: self, creator: contentRequest.creator, name: contentRequest.name, senders: contentRequest.senders ?? .Both, disposition: contentRequest.disposition ?? .Session)
+                addContent(content)
+            }
         }
 
         // Make sure all of these have executed before moving on
@@ -271,36 +274,22 @@ class Session {
                 } else {
                     self.state = .Ended
                 }
-                request.completionBlock(jingleAck)
+                request.completionBlock(jingleAck, nil)
             }
             outgoingRequest.initiator = initiator
             sendRequest(outgoingRequest)
         case .SessionAccept:
             state = .Active
-            var outgoingRequest = JingleRequest(sid: sid, action: .SessionAccept, completionBlock: request.completionBlock)
+            var outgoingRequest = JingleRequest(sid: sid, action: .SessionAccept) { request.completionBlock($0, nil) }
             outgoingRequest.responder = responder
             sendRequest(outgoingRequest)
         case .SessionTerminate:
             state = .Ended
-            var outgoingRequest = JingleRequest(sid: sid, action: .SessionTerminate, completionBlock: request.completionBlock)
+            var outgoingRequest = JingleRequest(sid: sid, action: .SessionTerminate) { request.completionBlock($0, nil) }
             outgoingRequest.reason = request.reason
             sendRequest(outgoingRequest)
         default:
             break
-        }
-
-        if contentAction == .ContentAdd {
-            for contentRequest in request.contents {
-                let content = Content(session: self, creator: contentRequest.creator, name: contentRequest.name, senders: contentRequest.senders ?? .Both, disposition: contentRequest.disposition ?? .Session)
-                addContent(content)
-            }
-        }
-
-        for contentRequest in request.contents {
-            if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
-                // TODO: Want to make sure all of these have executed before moving on
-                localContent.executeRemoteAction(contentAction, request: contentRequest)
-            }
         }
     }
 
