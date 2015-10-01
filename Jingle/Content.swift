@@ -114,7 +114,7 @@ class Content {
     func executeLocalAction(action: ActionName, request: JingleContentRequest, completion: () -> Void) {
         switch action {
         case .ContentAdd:
-            state = .Pending
+            state = .Starting
         case .ContentAccept:
             state = .Active
         case .ContentReject:

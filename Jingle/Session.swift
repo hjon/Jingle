@@ -92,6 +92,7 @@ class Session {
 
     private func sendRequest(request: JingleRequest) {
         // Do something and call request.completionBlock
+        request.completionBlock(.Ok)
     }
 
     typealias ContentFilter = (content: Content, contentRequest: JingleContentRequest) -> Bool
@@ -295,6 +296,8 @@ class Session {
             outgoingRequest.reason = request.reason
             sendRequest(outgoingRequest)
         default:
+            let outgoingRequest = JingleRequest(sid: sid, action: request.action) { request.completionBlock($0) }
+            sendRequest(outgoingRequest)
             break
         }
     }
