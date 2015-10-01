@@ -261,10 +261,15 @@ class Session {
 
         // Make sure all of these have executed before moving on
         let group = dispatch_group_create()
+        let syncQueue = dispatch_queue_create("testing", DISPATCH_QUEUE_SERIAL)
+        var results = [JingleContentRequest]()
         for contentRequest in request.contents {
             if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
                 dispatch_group_enter(group)
-                localContent.executeLocalAction(contentAction, request: contentRequest) {
+                localContent.executeLocalAction(contentAction, request: contentRequest) { (contentRequest) in
+                    dispatch_sync(syncQueue, {
+                        results.append(contentRequest)
+                    })
                     dispatch_group_leave(group)
                 }
             }
@@ -274,15 +279,40 @@ class Session {
         // Perform the action
         switch request.action {
         case .SessionInitiate:
+            // Make sure all of these have executed before moving on
+            let group = dispatch_group_create()
+            guard let localContents = contents[role.rawValue] else {
+                request.completionBlock(.BadRequest)
+                return
+            }
+
+            var offers = [JingleContentRequest]()
+            for (_, content) in localContents {
+                if content.state == .Starting && content.disposition == .Session {
+                    dispatch_group_enter(group)
+                    content.executeLocalAction(request.action, request: nil) { (contentRequest) in
+                        dispatch_sync(syncQueue, {
+                            offers.append(contentRequest)
+                        })
+                        dispatch_group_leave(group)
+                    }
+                }
+            }
+            dispatch_group_wait(group, DISPATCH_TIME_FOREVER)
+
             state = .Unacked
             var outgoingRequest = JingleRequest(sid: sid, action: .SessionInitiate) { jingleAck in
                 if jingleAck == .Ok {
                     self.state = .Pending
+                    for (_, content) in localContents {
+                        content.state = .Pending
+                    }
                 } else {
                     self.state = .Ended
                 }
                 request.completionBlock(jingleAck)
             }
+            outgoingRequest.contents = offers
             outgoingRequest.initiator = initiator
             sendRequest(outgoingRequest)
         case .SessionAccept:
@@ -296,7 +326,8 @@ class Session {
             outgoingRequest.reason = request.reason
             sendRequest(outgoingRequest)
         default:
-            let outgoingRequest = JingleRequest(sid: sid, action: request.action) { request.completionBlock($0) }
+            var outgoingRequest = JingleRequest(sid: sid, action: request.action) { request.completionBlock($0) }
+            outgoingRequest.contents = results
             sendRequest(outgoingRequest)
             break
         }

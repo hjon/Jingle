@@ -111,10 +111,30 @@ class Content {
         return .Ok
     }
 
-    func executeLocalAction(action: ActionName, request: JingleContentRequest, completion: () -> Void) {
+    func executeLocalAction(action: ActionName, request: JingleContentRequest?, completion: (JingleContentRequest) -> Void) {
+        if action == .SessionInitiate {
+            state = .Unacked
+            // Ultimately create an offer based on application/transport, which had been deferred from a content-add before the session started
+            var contentRequest = JingleContentRequest(creator: creator, name: name)
+            contentRequest.senders = senders
+            contentRequest.disposition = disposition
+            completion(contentRequest)
+            return
+        }
+
         switch action {
         case .ContentAdd:
             state = .Starting
+            if (session.state != .Starting) {
+                // Ultimately will create offer based on application/transport and return that
+                var contentRequest = JingleContentRequest(creator: creator, name: name)
+                contentRequest.senders = senders
+                contentRequest.disposition = disposition
+                completion(contentRequest)
+                return
+            } else {
+                // Otherwise initialize everything and return default result (which is just a dummy for this case)
+            }
         case .ContentAccept:
             state = .Active
         case .ContentReject:
@@ -122,10 +142,11 @@ class Content {
         case .ContentRemove:
             state = .Removed
         default:
-            completion()
-            return
+            break
         }
-        completion()
+
+        let contentRequest = JingleContentRequest(creator: creator, name: name)
+        completion(contentRequest)
     }
 }
 
