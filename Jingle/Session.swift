@@ -186,12 +186,17 @@ class Session {
             }
         }
 
+        // Make sure all of these have executed before moving on
+        let group = dispatch_group_create()
         for contentRequest in request.contents {
             if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
-                // TODO: Want to make sure all of these have executed before moving on
-                localContent.executeRemoteAction(contentAction, request: contentRequest)
+                dispatch_group_enter(group)
+                localContent.executeRemoteAction(contentAction, request: contentRequest) {
+                    dispatch_group_leave(group)
+                }
             }
         }
+        dispatch_group_wait(group, DISPATCH_TIME_FOREVER)
     }
 
     func processRequest(request: JingleRequest) {
@@ -243,6 +248,18 @@ class Session {
         guard finalAck == .Ok else {
             return
         }
+
+        // Make sure all of these have executed before moving on
+        let group = dispatch_group_create()
+        for contentRequest in request.contents {
+            if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
+                dispatch_group_enter(group)
+                localContent.executeLocalAction(contentAction, request: contentRequest) {
+                    dispatch_group_leave(group)
+                }
+            }
+        }
+        dispatch_group_wait(group, DISPATCH_TIME_FOREVER)
 
         // Perform the action
         switch request.action {

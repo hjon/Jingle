@@ -74,7 +74,7 @@ class Content {
         return .Ok
     }
 
-    func executeRemoteAction(action: ActionName, request: JingleContentRequest) {
+    func executeRemoteAction(action: ActionName, request: JingleContentRequest, completion: () -> Void) {
         switch action {
         case .ContentAdd:
             state = .Pending
@@ -85,8 +85,10 @@ class Content {
         case .ContentRemove:
             state = .Removed
         default:
+            completion()
             return
         }
+        completion()
     }
 
     func validateLocalAction(action: ActionName, request: JingleContentRequest) -> JingleAck {
@@ -109,7 +111,7 @@ class Content {
         return .Ok
     }
 
-    func executeLocalAction(action: ActionName, request: JingleContentRequest) {
+    func executeLocalAction(action: ActionName, request: JingleContentRequest, completion: () -> Void) {
         switch action {
         case .ContentAdd:
             state = .Pending
@@ -120,8 +122,10 @@ class Content {
         case .ContentRemove:
             state = .Removed
         default:
+            completion()
             return
         }
+        completion()
     }
 }
 
