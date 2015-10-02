@@ -65,7 +65,7 @@ class Session {
             numEquivalentContents =  self.countEquivalentContents(request.contents)
         }
         // TODO: Enum for .Remote and .Local and .Inspection and remap .Low, .Normal and .High?
-        operation.queuePriority = .High
+        operation.queuePriority = .Normal
         queue.addOperations([operation], waitUntilFinished: true)
         return numEquivalentContents > 0
     }
