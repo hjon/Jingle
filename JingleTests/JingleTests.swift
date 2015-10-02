@@ -25,13 +25,17 @@ class JingleTests: XCTestCase {
     func testSessionCreation() {
         let sessionExpectation = self.expectationWithDescription("Unknown session")
         let sessionManager = SessionManager()
-        let request = JingleRequest(sid: "12345", action: .SessionInitiate) { jingleAck in
+        var request = JingleRequest(sid: "12345", action: .SessionInitiate) { jingleAck in
             XCTAssertEqual(jingleAck, JingleAck.Ok, "Was not .Ok")
+
+            let session = sessionManager.sessionForPeer("peer@example.com", sid: "12345")
+            XCTAssertNotNil(session, "Session doesn't exist")
+
             sessionExpectation.fulfill()
         }
+        let contentRequest = JingleContentRequest(creator: .Initiator, name: "remote")
+        request.contents = [contentRequest]
         sessionManager.processRequest(request, me: "me@example.com", peer: "peer@example.com")
-        let session = sessionManager.sessionForPeer("peer@example.com", sid: "12345")
-        XCTAssertNotNil(session, "Session doesn't exist")
 
         self.waitForExpectationsWithTimeout(1, handler: nil)
     }
@@ -55,13 +59,23 @@ class JingleTests: XCTestCase {
         let session = sessionManager.createSession("me@example.com", peer: "peer@example.com")
         session.state = .Unacked
 
+        session.addContentForApplication(nil, name: "local", senders: nil, disposition: nil) { (ack) -> Void in
+            if let content = session.contentForCreator(.Initiator, name: "local") {
+                content.state = .Unacked
+            }
+        }
+
         let tieBreakExpectation = self.expectationWithDescription("Tie break - win with lower local SID")
-        let request = JingleRequest(sid: "\(session.sid)1", action: .SessionInitiate) { jingleAck in
+        var request = JingleRequest(sid: "\(session.sid)1", action: .SessionInitiate) { jingleAck in
             XCTAssertEqual(jingleAck, JingleAck.TieBreak, "Was not .TieBreak")
+
+            XCTAssertEqual(sessionManager.sessionsForPeer("peer@example.com")?.count, 1, "Incorrect number of sessions for peer")
+
             tieBreakExpectation.fulfill()
         }
+        let contentRequest = JingleContentRequest(creator: .Initiator, name: "remote")
+        request.contents = [contentRequest]
         sessionManager.processRequest(request, me: "me@example.com", peer: "peer@example.com")
-        XCTAssertEqual(sessionManager.sessionsForPeer("peer@example.com")?.count, 1, "Incorrect number of sessions for peer")
 
         self.waitForExpectationsWithTimeout(1, handler: nil)
     }
@@ -71,13 +85,23 @@ class JingleTests: XCTestCase {
         let session = sessionManager.createSession("me@example.com", peer: "peer@example.com")
         session.state = .Unacked
 
+        session.addContentForApplication(nil, name: "local", senders: nil, disposition: nil) { (ack) -> Void in
+            if let content = session.contentForCreator(.Initiator, name: "local") {
+                content.state = .Unacked
+            }
+        }
+
         let tieBreakExpectation = self.expectationWithDescription("Tie break - lose with higher local SID")
-        let request = JingleRequest(sid: " \(session.sid)", action: .SessionInitiate) { jingleAck in
-            XCTAssertTrue(jingleAck == .Ok, "Was not .Ok")
+        var request = JingleRequest(sid: " \(session.sid)", action: .SessionInitiate) { jingleAck in
+            XCTAssertEqual(jingleAck, JingleAck.Ok, "Was not .Ok")
+
+            XCTAssertEqual(sessionManager.sessionsForPeer("peer@example.com")?.count, 2, "Incorrect number of sessions for peer")
+
             tieBreakExpectation.fulfill()
         }
+        let contentRequest = JingleContentRequest(creator: .Initiator, name: "remote")
+        request.contents = [contentRequest]
         sessionManager.processRequest(request, me: "me@example.com", peer: "peer@example.com")
-        XCTAssertEqual(sessionManager.sessionsForPeer("peer@example.com")?.count, 2, "Incorrect number of sessions for peer")
 
         self.waitForExpectationsWithTimeout(1, handler: nil)
     }
@@ -87,13 +111,23 @@ class JingleTests: XCTestCase {
         let session = sessionManager.createSession("me@example.com", peer: "peer@example.com")
         session.state = .Unacked
 
+        session.addContentForApplication(nil, name: "local", senders: nil, disposition: nil) { (ack) -> Void in
+            if let content = session.contentForCreator(.Initiator, name: "local") {
+                content.state = .Unacked
+            }
+        }
+
         let tieBreakExpectation = self.expectationWithDescription("Tie break - with lower self ID")
-        let request = JingleRequest(sid: "\(session.sid)", action: .SessionInitiate) { jingleAck in
+        var request = JingleRequest(sid: "\(session.sid)", action: .SessionInitiate) { jingleAck in
             XCTAssertEqual(jingleAck, JingleAck.TieBreak, "Was not .TieBreak")
+
+            XCTAssertTrue(sessionManager.sessionsForPeer("peer@example.com")?.count == 1, "Incorrect number of sessions for peer")
+
             tieBreakExpectation.fulfill()
         }
+        let contentRequest = JingleContentRequest(creator: .Initiator, name: "remote")
+        request.contents = [contentRequest]
         sessionManager.processRequest(request, me: "me@example.com", peer: "peer@example.com")
-        XCTAssertTrue(sessionManager.sessionsForPeer("peer@example.com")?.count == 1, "Incorrect number of sessions for peer")
 
         self.waitForExpectationsWithTimeout(1, handler: nil)
     }
@@ -103,13 +137,23 @@ class JingleTests: XCTestCase {
         let session = sessionManager.createSession("zme@example.com", peer: "peer@example.com")
         session.state = .Unacked
 
+        session.addContentForApplication(nil, name: "local", senders: nil, disposition: nil) { (ack) -> Void in
+            if let content = session.contentForCreator(.Initiator, name: "local") {
+                content.state = .Unacked
+            }
+        }
+
         let tieBreakExpectation = self.expectationWithDescription("Tie break - lose with higher self ID")
-        let request = JingleRequest(sid: "\(session.sid)", action: .SessionInitiate) { jingleAck in
+        var request = JingleRequest(sid: "\(session.sid)", action: .SessionInitiate) { jingleAck in
             XCTAssertEqual(jingleAck, JingleAck.Ok, "Was not .Ok")
+
+            XCTAssertEqual(sessionManager.sessionsForPeer("peer@example.com")?.count, 1, "Incorrect number of sessions for peer")
+
             tieBreakExpectation.fulfill()
         }
+        let contentRequest = JingleContentRequest(creator: .Initiator, name: "remote")
+        request.contents = [contentRequest]
         sessionManager.processRequest(request, me: "zme@example.com", peer: "peer@example.com")
-        XCTAssertEqual(sessionManager.sessionsForPeer("peer@example.com")?.count, 1, "Incorrect number of sessions for peer")
 
         self.waitForExpectationsWithTimeout(1, handler: nil)
     }
@@ -122,10 +166,12 @@ class JingleTests: XCTestCase {
         let tieBreakExpectation = self.expectationWithDescription("Tie break - bad request with everything the same")
         let request = JingleRequest(sid: "\(session.sid)", action: .SessionInitiate) { jingleAck in
             XCTAssertEqual(jingleAck, JingleAck.BadRequest, "Was not .BadRequest")
+
+            XCTAssertEqual(sessionManager.sessionsForPeer("me@example.com")?.count, 1, "Incorrect number of sessions for peer")
+
             tieBreakExpectation.fulfill()
         }
         sessionManager.processRequest(request, me: "me@example.com", peer: "me@example.com")
-        XCTAssertEqual(sessionManager.sessionsForPeer("me@example.com")?.count, 1, "Incorrect number of sessions for peer")
 
         self.waitForExpectationsWithTimeout(1, handler: nil)
     }

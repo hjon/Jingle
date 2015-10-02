@@ -93,10 +93,12 @@ class OutOfOrderTests: XCTestCase {
         responderSession.state = .Starting
 
         let ackExpectation = self.expectationWithDescription("Session initiate on responder's session")
-        let request = JingleRequest(sid: "12345", action: .SessionInitiate) { jingleAck in
+        var request = JingleRequest(sid: "12345", action: .SessionInitiate) { jingleAck in
             XCTAssertEqual(jingleAck, JingleAck.Ok, "Was not .Ok; should process session initiate on responder's session in .Starting")
             ackExpectation.fulfill()
         }
+        let contentRequest = JingleContentRequest(creator: .Initiator, name: "testing")
+        request.contents = [contentRequest]
         responderSession.processRequest(request)
 
         self.waitForExpectationsWithTimeout(1, handler: nil)
@@ -185,11 +187,19 @@ class OutOfOrderTests: XCTestCase {
     func testSessionAcceptOnInitiatorSessionPending() {
         initiatorSession.state = .Pending
 
+        initiatorSession.addContentForApplication(nil, name: "local", senders: nil, disposition: nil) { (ack) -> Void in
+            if let content = self.initiatorSession.contentForCreator(.Initiator, name: "local") {
+                content.state = .Pending
+            }
+        }
+
         let ackExpectation = self.expectationWithDescription("Session accept on initiator's session")
-        let request = JingleRequest(sid: "12345", action: .SessionAccept) { jingleAck in
+        var request = JingleRequest(sid: "12345", action: .SessionAccept) { jingleAck in
             XCTAssertEqual(jingleAck, JingleAck.Ok, "Was not .Ok; should process session accept on initiator's session in .Pending")
             ackExpectation.fulfill()
         }
+        let contentRequest = JingleContentRequest(creator: .Initiator, name: "local")
+        request.contents = [contentRequest]
         initiatorSession.processRequest(request)
 
         self.waitForExpectationsWithTimeout(1, handler: nil)
