@@ -11,6 +11,14 @@ import Foundation
 class SessionManager {
     var sessions = [String: [String: Session]]() // mapped by peer, then sid
 
+    private let queue: NSOperationQueue = {
+        let queue = NSOperationQueue()
+        queue.name = "SessionManager.ProcessQueue"
+        queue.maxConcurrentOperationCount = 1
+        queue.qualityOfService = .Utility
+        return queue
+    }()
+
     private func addSession(session: Session) {
         var peerSessions = sessions[session.peer] ?? [:]
         peerSessions[session.sid] = session
@@ -40,7 +48,7 @@ class SessionManager {
         return session
     }
 
-    func processRequest(request: JingleRequest, me: String, peer: String) {
+    func internalProcessRequest(request: JingleRequest, me: String, peer: String) {
         if let session = sessionForPeer(peer, sid: request.sid) {
             if session.state == .Pending || session.state == .Active {
                 session.processRequest(request)
@@ -85,5 +93,9 @@ class SessionManager {
         let session = Session(initiator: peer, responder: me, role: .Responder, sid: request.sid)
         addSession(session)
         session.processRequest(request)
+    }
+
+    func processRequest(request: JingleRequest, me: String, peer: String) {
+        queue.addOperationWithBlock { self.internalProcessRequest(request, me: me, peer: peer) }
     }
 }

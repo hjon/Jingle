@@ -60,7 +60,14 @@ class Session {
     }
 
     func equivalent(request: JingleRequest) -> Bool {
-        return countEquivalentContents(request.contents) > 0
+        var numEquivalentContents = 0
+        let operation = NSBlockOperation() {
+            numEquivalentContents =  self.countEquivalentContents(request.contents)
+        }
+        // TODO: Enum for .Remote and .Local and .Inspection and remap .Low, .Normal and .High?
+        operation.queuePriority = .High
+        queue.addOperations([operation], waitUntilFinished: true)
+        return numEquivalentContents > 0
     }
 
     private func addContent(content: Content) {
@@ -211,8 +218,8 @@ class Session {
         let operation = NSBlockOperation() {
             self.internalProcessRemoteRequest(request)
         }
-        // TODO: Enum for .Remote and .Local and remap .Normal and .High?
-        operation.queuePriority = .Normal
+        // TODO: Enum for .Remote and .Local and .Inspection and remap .Low, .Normal and .High?
+        operation.queuePriority = .Low
         queue.addOperation(operation)
     }
 
@@ -337,7 +344,7 @@ class Session {
         let operation = NSBlockOperation() {
             self.internalProcessLocalRequest(request)
         }
-        // TODO: Enum for .Remote and .Local and remap .Normal and .High?
+        // TODO: Enum for .Remote and .Local and .Inspection and remap .Low, .Normal and .High?
         operation.queuePriority = .High
         queue.addOperation(operation)
     }
