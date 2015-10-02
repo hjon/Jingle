@@ -130,18 +130,6 @@ class Session {
         return equivalentContents.count
     }
 
-    private func countAffectedContents(contentRequests: [JingleContentRequest], filter: ContentFilter) -> Int {
-        var affectedContents = Set<Content>()
-        for request in contentRequests {
-            if let content = internalContentForCreator(request.creator, name: request.name) {
-                if filter(content: content, contentRequest: request) {
-                    affectedContents.insert(content)
-                }
-            }
-        }
-        return affectedContents.count
-    }
-
     private func internalProcessRemoteRequest(request: JingleRequest) {
         // Check for out-of-order session requests
         if request.action == .SessionInitiate {
