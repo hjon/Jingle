@@ -19,13 +19,15 @@ class LocalActionTests: XCTestCase {
         session.addContentForApplication(nil, name: "local", senders: nil, disposition: nil) { (ack) -> Void in
             XCTAssertEqual(ack, JingleAck.Ok, "Was not .Ok")
 
-            let content = session.contentForCreator(.Initiator, name: "local")
-            XCTAssertNotNil(content, "No content found")
-            if let content = content {
-                XCTAssertEqual(content.state, ContentState.Starting, "Content did not start in .Starting state")
-            }
+            session.getContentForCreator(.Initiator, name: "local", completion: { (content) -> Void in
+                if let content = content {
+                    XCTAssertEqual(content.state, ContentState.Starting, "Content did not start in .Starting state")
+                } else {
+                    XCTFail("No content found")
+                }
 
-            createContentExpectation.fulfill()
+                createContentExpectation.fulfill()
+            })
         }
 
         self.waitForExpectationsWithTimeout(1, handler: nil)
@@ -43,23 +45,21 @@ class LocalActionTests: XCTestCase {
             XCTAssertEqual(ack, JingleAck.Ok, "Was not .Ok")
             XCTAssertEqual(session.state, SessionState.Pending, "Was not .Pending")
 
-            let content1 = session.contentForCreator(.Initiator, name: "local1")
-            XCTAssertNotNil(content1, "No content found")
-            if let content = content1 {
-                XCTAssertEqual(content.state, ContentState.Pending, "Content did not in .Pending state after starting session")
+            func checkContentWithName(name: String) {
+                session.getContentForCreator(.Initiator, name: name, completion: { (content) -> Void in
+                    if let content = content {
+                        XCTAssertEqual(content.state, ContentState.Pending, "Content not in .Pending state after starting session")
+                    } else {
+                        XCTFail("No content found")
+                    }
+                })
+
             }
 
-            let content2 = session.contentForCreator(.Initiator, name: "local2")
-            XCTAssertNotNil(content2, "No content found")
-            if let content = content2 {
-                XCTAssertEqual(content.state, ContentState.Pending, "Content did not in .Pending state after starting session")
-            }
-
-            let content3 = session.contentForCreator(.Initiator, name: "local3")
-            XCTAssertNotNil(content3, "No content found")
-            if let content = content3 {
-                XCTAssertEqual(content.state, ContentState.Pending, "Content did not in .Pending state after starting session")
-            }
+            let queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)
+            dispatch_apply(3, queue, { (index) -> Void in
+                checkContentWithName("local\(index + 1)")
+            })
             sessionStartWithContentExpectation.fulfill()
         }
 

@@ -188,9 +188,11 @@ class OutOfOrderTests: XCTestCase {
         initiatorSession.state = .Pending
 
         initiatorSession.addContentForApplication(nil, name: "local", senders: nil, disposition: nil) { (ack) -> Void in
-            if let content = self.initiatorSession.contentForCreator(.Initiator, name: "local") {
-                content.state = .Pending
-            }
+            self.initiatorSession.getContentForCreator(.Initiator, name: "local", completion: { (content) -> Void in
+                if let content = content {
+                    content.state = .Pending
+                }
+            })
         }
 
         let ackExpectation = self.expectationWithDescription("Session accept on initiator's session")

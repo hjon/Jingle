@@ -76,7 +76,19 @@ class Session {
         contents[content.creator.rawValue] = creatorContents
     }
 
-    func contentForCreator(creator: Role, name: String) -> Content? {
+    func getContentForCreator(creator: Role, name: String, completion: (Content?) -> Void ) {
+        let operation = NSBlockOperation() {
+            guard let creatorContents = self.contents[creator.rawValue] else {
+                completion(nil)
+                return
+            }
+            completion(creatorContents[name])
+        }
+        operation.queuePriority = .Normal
+        queue.addOperation(operation)
+    }
+
+    private func internalContentForCreator(creator: Role, name: String) -> Content? {
         guard let creatorContents = contents[creator.rawValue] else {
             return nil
         }
@@ -121,7 +133,7 @@ class Session {
     private func countAffectedContents(contentRequests: [JingleContentRequest], filter: ContentFilter) -> Int {
         var affectedContents = Set<Content>()
         for request in contentRequests {
-            if let content = contentForCreator(request.creator, name: request.name) {
+            if let content = internalContentForCreator(request.creator, name: request.name) {
                 if filter(content: content, contentRequest: request) {
                     affectedContents.insert(content)
                 }
@@ -171,7 +183,7 @@ class Session {
                     newContents.append(newContent)
                 }
                 validationResults.append(ack)
-            } else if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
+            } else if let localContent = internalContentForCreator(contentRequest.creator, name: contentRequest.name) {
                 validationResults.append(localContent.validateRemoteAction(contentAction, request: contentRequest))
             } else {
                 validationResults.append(.BadRequest)
@@ -204,7 +216,7 @@ class Session {
         // Make sure all of these have executed before moving on
         let group = dispatch_group_create()
         for contentRequest in request.contents {
-            if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
+            if let localContent = internalContentForCreator(contentRequest.creator, name: contentRequest.name) {
                 dispatch_group_enter(group)
                 localContent.executeRemoteAction(contentAction, request: contentRequest) {
                     dispatch_group_leave(group)
@@ -248,7 +260,7 @@ class Session {
                     newContents.append(newContent)
                 }
                 validationResults.append(ack)
-            } else if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
+            } else if let localContent = internalContentForCreator(contentRequest.creator, name: contentRequest.name) {
                 validationResults.append(localContent.validateLocalAction(contentAction, request: contentRequest))
             } else {
                 validationResults.append(.BadRequest)
@@ -271,7 +283,7 @@ class Session {
         let syncQueue = dispatch_queue_create("testing", DISPATCH_QUEUE_SERIAL)
         var results = [JingleContentRequest]()
         for contentRequest in request.contents {
-            if let localContent = contentForCreator(contentRequest.creator, name: contentRequest.name) {
+            if let localContent = internalContentForCreator(contentRequest.creator, name: contentRequest.name) {
                 dispatch_group_enter(group)
                 localContent.executeLocalAction(contentAction, request: contentRequest) { (contentRequest) in
                     dispatch_sync(syncQueue, {
