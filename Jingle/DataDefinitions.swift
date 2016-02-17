@@ -49,9 +49,9 @@ enum ActionName: String {
 enum JingleAck {
     case Ok
     case BadRequest
+    case OutOfOrder
     case TieBreak
     case UnknownSession
-    case OutOfOrder
 
     static func reduceAcks(acks: [JingleAck]) -> JingleAck {
         return acks.reduce(JingleAck.Ok) { previous, current in
@@ -104,14 +104,14 @@ enum JingleReason {
 }
 
 struct JingleContentRequest {
-    let creator: Role
+    let creator: SessionRole
     let name: String
     var disposition: Disposition?
-    var senders: Senders?
+    var senders: ContentSenders?
     var application: Any?
     var transport: Any?
 
-    init(creator: Role, name: String) {
+    init(creator: SessionRole, name: String) {
         self.creator = creator
         self.name = name
 

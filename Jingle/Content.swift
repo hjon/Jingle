@@ -11,11 +11,11 @@ enum Disposition: String {
     case EarlySession = "early-session"
 }
 
-enum Senders: String {
-    case None = "none"
-    case Both = "both"
+enum ContentSenders: String {
     case Initiator = "initiator"
     case Responder = "responder"
+    case Both = "both"
+    case None = "none"
 }
 
 enum ContentState {
@@ -29,14 +29,14 @@ enum ContentState {
 
 class Content {
     unowned let session: Session
-    let creator: Role
+    let creator: SessionRole
     let name: String
     let disposition: Disposition
-    var senders: Senders
+    var senders: ContentSenders
     var state = ContentState.Starting
-    var unackedSendersChange: Senders?
+    var unackedSendersChange: ContentSenders?
 
-    init(session: Session, creator: Role, name: String, senders: Senders = .Both, disposition: Disposition = .Session) {
+    init(session: Session, creator: SessionRole, name: String, senders: ContentSenders = .Both, disposition: Disposition = .Session) {
         self.session = session
         self.creator = creator
         self.name = name

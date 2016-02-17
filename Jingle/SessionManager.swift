@@ -9,6 +9,7 @@
 import Foundation
 
 class SessionManager {
+    // Probably use dispatch_queue for access
     var sessions = [String: [String: Session]]() // mapped by peer, then sid
 
     private let queue: NSOperationQueue = {

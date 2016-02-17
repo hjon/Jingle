@@ -8,7 +8,7 @@
 
 import Foundation
 
-enum Role: String {
+enum SessionRole: String {
     case Initiator = "initiator"
     case Responder = "responder"
 }
@@ -24,9 +24,10 @@ enum SessionState {
 class Session {
     let initiator: String
     let responder: String
-    let role: Role
+    let role: SessionRole
     let sid: String
     var state = SessionState.Starting
+//     Probably use dispatch_queue for access
     var contents = [String: [String: Content]]() // mapped by creator, then name
     private let queue: NSOperationQueue = {
         let queue = NSOperationQueue()
@@ -44,7 +45,7 @@ class Session {
         }
     }
 
-    var peerRole: Role {
+    var peerRole: SessionRole {
         if role == .Initiator {
             return .Responder
         } else {
@@ -52,7 +53,7 @@ class Session {
         }
     }
 
-    init(initiator: String, responder: String, role: Role, sid: String) {
+    init(initiator: String, responder: String, role: SessionRole, sid: String) {
         self.initiator = initiator
         self.responder = responder
         self.role = role
@@ -76,7 +77,7 @@ class Session {
         contents[content.creator.rawValue] = creatorContents
     }
 
-    func getContentForCreator(creator: Role, name: String, completion: (Content?) -> Void ) {
+    func getContentForCreator(creator: SessionRole, name: String, completion: (Content?) -> Void ) {
         let operation = NSBlockOperation() {
             guard let creatorContents = self.contents[creator.rawValue] else {
                 completion(nil)
@@ -88,18 +89,18 @@ class Session {
         queue.addOperation(operation)
     }
 
-    private func internalContentForCreator(creator: Role, name: String) -> Content? {
+    private func internalContentForCreator(creator: SessionRole, name: String) -> Content? {
         guard let creatorContents = contents[creator.rawValue] else {
             return nil
         }
         return creatorContents[name]
     }
 
-    private func contentsForCreator(creator: Role) -> [String: Content]? {
+    private func contentsForCreator(creator: SessionRole) -> [String: Content]? {
         return contents[creator.rawValue]
     }
 
-    func addContentForApplication(application: Any?, name: String?, senders: Senders?, disposition: Disposition?, completionBlock: (JingleAck) -> Void) {
+    func addContentForApplication(application: Any?, name: String?, senders: ContentSenders?, disposition: Disposition?, completionBlock: (JingleAck) -> Void) {
         var contentRequest = JingleContentRequest(creator: role, name: name ?? NSUUID().UUIDString)
         contentRequest.senders = senders ?? .Both
         contentRequest.disposition = disposition ?? .Session
@@ -201,6 +202,7 @@ class Session {
             break
         }
 
+        // TODO: Gather results
         // Make sure all of these have executed before moving on
         let group = dispatch_group_create()
         for contentRequest in request.contents {
