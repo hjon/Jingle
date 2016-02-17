@@ -85,6 +85,7 @@ class Session {
             }
             completion(creatorContents[name])
         }
+        // TODO: Enum for .Remote and .Local and .Inspection and remap .Low, .Normal and .High?
         operation.queuePriority = .Normal
         queue.addOperation(operation)
     }
