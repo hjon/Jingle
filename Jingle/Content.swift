@@ -23,8 +23,7 @@ enum ContentState {
     case Unacked
     case Pending
     case Active
-    case Rejected
-    case Removed
+    case Ended
 }
 
 class Content {
@@ -80,10 +79,8 @@ class Content {
             state = .Pending
         case .ContentAccept:
             state = .Active
-        case .ContentReject:
-            state = .Rejected
-        case .ContentRemove:
-            state = .Removed
+        case .ContentReject, .ContentRemove:
+            state = .Ended
         default:
             completion()
             return
@@ -137,10 +134,8 @@ class Content {
             }
         case .ContentAccept:
             state = .Active
-        case .ContentReject:
-            state = .Rejected
-        case .ContentRemove:
-            state = .Removed
+        case .ContentReject, .ContentRemove:
+            state = .Ended
         default:
             break
         }
